@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/collector"
-	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/vast"
@@ -41,14 +40,14 @@ func main() {
 	})
 	medians := registerMarket(mux, cfg)
 
-	mux.Handle("POST /api/reservations", createReservation(db, noOffers{}))
-
 	vastClient := vast.NewClient(cfg.VastAPIKey)
-	offers, err := newOfferSource(cfg, vastClient, vastFixturePath)
+	source, err := newOfferSource(cfg, vastClient, vastFixturePath)
 	if err != nil {
 		slog.Error("vast fixture", "err", err)
 		os.Exit(1)
 	}
+	offers := newRecentSnapshots(source)
+	mux.Handle("POST /api/reservations", createReservation(db, offers))
 	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
 	mux.HandleFunc("POST /api/match", matchHandler(offers, medians.get))
 
@@ -78,8 +77,3 @@ func main() {
 		slog.Error("shutdown failed", "err", err)
 	}
 }
-
-// noOffers is a placeholder until the offers lane supplies the snapshot lookup.
-type noOffers struct{}
-
-func (noOffers) Offer(string, string) (contract.Offer, bool) { return contract.Offer{}, false }
