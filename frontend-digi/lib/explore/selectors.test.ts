@@ -12,6 +12,14 @@ describe("offer selection", () => {
     expect(visibleModelOffers(models, true)).toHaveLength(models.length);
   });
 
+  it("keeps small result sets intact without hidden or duplicated models", () => {
+    for (const count of [0, 1, 3, 4]) {
+      const offers = getModelOffers(sampleOffers.slice(0, count), DEFAULT_FILTERS, "ratio");
+      expect(visibleModelOffers(offers, false)).toHaveLength(count);
+      expect(visibleModelOffers(offers, true)).toEqual(offers);
+    }
+  });
+
   it("searches model or region case-insensitively and trims whitespace", () => {
     expect(filterOffers(sampleOffers, { ...DEFAULT_FILTERS, search: "  rTx 4090 " }, "ratio").every((o) => o.gpu_name === "RTX 4090")).toBe(true);
     const regions = filterOffers(sampleOffers, { ...DEFAULT_FILTERS, search: "eu central" }, "ratio");
