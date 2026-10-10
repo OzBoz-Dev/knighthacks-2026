@@ -1,0 +1,669 @@
+{
+  "datasets": [
+    {
+      "name": "listings_per_snapshot",
+      "displayName": "Listing count per snapshot",
+      "queryLines": [
+        "SELECT timestamp AS snapshot_time,\n",
+        "  date_format(timestamp, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time_text,\n",
+        "  sum(listing_count) AS single_gpu_listings,\n",
+        "  count(DISTINCT gpu_name) AS models\n",
+        "FROM solgpu.gold.gpu_price_trends\n",
+        "WHERE region = 'all'\n",
+        "GROUP BY timestamp\n",
+        "ORDER BY timestamp\n"
+      ]
+    },
+    {
+      "name": "price_spread",
+      "displayName": "Price spread per GPU model, latest snapshot",
+      "queryLines": [
+        "SELECT gpu_name, listing_count, lowest_price, median_price, p90_price, median_reliability,\n",
+        "  date_format(updated_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time\n",
+        "FROM solgpu.gold.gpu_market_summary\n",
+        "WHERE listing_count >= 3\n",
+        "ORDER BY listing_count DESC\n"
+      ]
+    },
+    {
+      "name": "rtx4090_trend",
+      "displayName": "RTX 4090 median price with p10 and p90, all regions",
+      "queryLines": [
+        "SELECT timestamp, date_format(timestamp, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time, listing_count, series, price\n",
+        "FROM solgpu.gold.gpu_price_trends\n",
+        "LATERAL VIEW stack(3, 'p10_price', p10_price, 'median_price', median_price, 'p90_price', p90_price) s AS series, price\n",
+        "WHERE gpu_name = 'RTX 4090' AND region = 'all'\n",
+        "ORDER BY timestamp, series\n"
+      ]
+    },
+    {
+      "name": "rtx4090_regions",
+      "displayName": "RTX 4090 median price per region, latest snapshot",
+      "queryLines": [
+        "SELECT region, median_price, listing_count, date_format(timestamp, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time\n",
+        "FROM solgpu.gold.gpu_price_trends\n",
+        "WHERE gpu_name = 'RTX 4090' AND region <> 'all'\n",
+        "  AND snapshot_id = (SELECT max(snapshot_id) FROM solgpu.gold.gpu_price_trends)\n",
+        "ORDER BY median_price\n"
+      ]
+    },
+    {
+      "name": "latest_snapshot",
+      "displayName": "Latest gold snapshot",
+      "queryLines": [
+        "SELECT date_format(max(updated_at), 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS latest_snapshot\n",
+        "FROM solgpu.gold.gpu_market_summary\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "market",
+      "displayName": "Market",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## solGPU market dashboard\n",
+                "\n",
+                "Source: gold tables in catalog solgpu, built every 10 minutes from Vast.ai snapshots. Single-GPU listings only. Each view names the snapshot time of its data. Prices are USD per hour."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "latest_snapshot_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "latest_snapshot",
+                  "fields": [
+                    {
+                      "name": "latest_snapshot",
+                      "expression": "`latest_snapshot`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "latest_snapshot",
+                  "displayName": "Latest gold snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Latest gold snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "view1_snapshot",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "listings_per_snapshot",
+                  "fields": [
+                    {
+                      "name": "newest_snapshot",
+                      "expression": "MAX(`snapshot_time_text`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "newest_snapshot",
+                  "displayName": "Listing count view: newest snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Listing count view: newest snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "listings_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "listings_per_snapshot",
+                  "fields": [
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    },
+                    {
+                      "name": "single_gpu_listings",
+                      "expression": "`single_gpu_listings`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "snapshot_time",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "snapshot time (UTC)"
+                },
+                "y": {
+                  "fieldName": "single_gpu_listings",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "single-GPU listings"
+                }
+              },
+              "frame": {
+                "title": "Single-GPU listing count per snapshot, all GPU models",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "spread_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "price_spread",
+                  "fields": [
+                    {
+                      "name": "gpu_name",
+                      "expression": "`gpu_name`"
+                    },
+                    {
+                      "name": "listing_count",
+                      "expression": "`listing_count`"
+                    },
+                    {
+                      "name": "lowest_price",
+                      "expression": "`lowest_price`"
+                    },
+                    {
+                      "name": "median_price",
+                      "expression": "`median_price`"
+                    },
+                    {
+                      "name": "p90_price",
+                      "expression": "`p90_price`"
+                    },
+                    {
+                      "name": "median_reliability",
+                      "expression": "`median_reliability`"
+                    },
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "gpu_name",
+                    "displayName": "gpu_name"
+                  },
+                  {
+                    "fieldName": "listing_count",
+                    "displayName": "listing_count"
+                  },
+                  {
+                    "fieldName": "lowest_price",
+                    "displayName": "lowest_price"
+                  },
+                  {
+                    "fieldName": "median_price",
+                    "displayName": "median_price"
+                  },
+                  {
+                    "fieldName": "p90_price",
+                    "displayName": "p90_price"
+                  },
+                  {
+                    "fieldName": "median_reliability",
+                    "displayName": "median_reliability"
+                  },
+                  {
+                    "fieldName": "snapshot_time",
+                    "displayName": "snapshot_time"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Price spread per GPU model, latest snapshot, USD per hour (3 or more listings)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "spread_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "price_spread",
+                  "fields": [
+                    {
+                      "name": "gpu_name",
+                      "expression": "`gpu_name`"
+                    },
+                    {
+                      "name": "median_price",
+                      "expression": "`median_price`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "gpu_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "GPU model"
+                },
+                "y": {
+                  "fieldName": "median_price",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "median USD per hour"
+                }
+              },
+              "frame": {
+                "title": "Median price per GPU model, latest snapshot (snapshot time in the table above)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "view3_snapshot",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_trend",
+                  "fields": [
+                    {
+                      "name": "newest_snapshot",
+                      "expression": "MAX(`snapshot_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "newest_snapshot",
+                  "displayName": "Trend view: newest snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Trend view: newest snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "view3_oldest",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_trend",
+                  "fields": [
+                    {
+                      "name": "oldest_snapshot",
+                      "expression": "MIN(`snapshot_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "oldest_snapshot",
+                  "displayName": "Trend view: oldest snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Trend view: oldest snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "trend_line",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_trend",
+                  "fields": [
+                    {
+                      "name": "timestamp",
+                      "expression": "`timestamp`"
+                    },
+                    {
+                      "name": "price",
+                      "expression": "`price`"
+                    },
+                    {
+                      "name": "series",
+                      "expression": "`series`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "timestamp",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "snapshot time (UTC)"
+                },
+                "y": {
+                  "fieldName": "price",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD per hour"
+                },
+                "color": {
+                  "fieldName": "series",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "series"
+                }
+              },
+              "frame": {
+                "title": "RTX 4090 median price, p10 to p90, single-GPU listings, all regions",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 22,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "view4_snapshot",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_regions",
+                  "fields": [
+                    {
+                      "name": "snapshot",
+                      "expression": "MAX(`snapshot_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "snapshot",
+                  "displayName": "Region view: snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Region view: snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 28,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "region_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_regions",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "median_price",
+                      "expression": "`median_price`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "region",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "region"
+                },
+                "y": {
+                  "fieldName": "median_price",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "median USD per hour"
+                }
+              },
+              "frame": {
+                "title": "RTX 4090 median price per region, latest snapshot, single-GPU listings",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 28,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "region_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rtx4090_regions",
+                  "fields": [
+                    {
+                      "name": "region",
+                      "expression": "`region`"
+                    },
+                    {
+                      "name": "median_price",
+                      "expression": "`median_price`"
+                    },
+                    {
+                      "name": "listing_count",
+                      "expression": "`listing_count`"
+                    },
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "region",
+                    "displayName": "region"
+                  },
+                  {
+                    "fieldName": "median_price",
+                    "displayName": "median_price"
+                  },
+                  {
+                    "fieldName": "listing_count",
+                    "displayName": "listing_count"
+                  },
+                  {
+                    "fieldName": "snapshot_time",
+                    "displayName": "snapshot_time"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "RTX 4090 per region, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 34,
+            "width": 6,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ]
+}
