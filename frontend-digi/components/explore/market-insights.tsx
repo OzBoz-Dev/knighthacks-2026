@@ -11,7 +11,15 @@ import styles from "./explore.module.css";
 
 export function MarketInsights({ insights, models }: { insights: Insights; models: string[] }) {
   const [model, setModel] = useState<string | null>(insights.summaries[0]?.gpu_name ?? models[0] ?? null);
-  const { summary, trend, provenance } = selectInsights(insights, model);
+  const { unavailable, summary, trend, provenance } = selectInsights(insights, model);
+  if (unavailable) {
+    return (
+      <section aria-labelledby="market-insights-title" className={styles.insights}>
+        <Title order={2} id="market-insights-title" fz={15} fw={600}>Pricing insights</Title>
+        <Text c="dimmed" fz={12} pt="xs" role="status">Pricing insights temporarily unavailable. Offers and filters still work.</Text>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby="market-insights-title" className={styles.insights}>
       <Group justify="space-between" align="center" mb={10} gap="xs">

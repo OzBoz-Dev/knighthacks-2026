@@ -45,6 +45,14 @@ describe("selectInsights", () => {
     expect(selectInsights(insights, "H100 SXM").provenance).toEqual({ source: "databricks-live", timestamp: "2026-10-10T12:00:00Z" });
   });
 
+  it("hides every insight value when the insights source is unavailable", () => {
+    const down = selectInsights({ ...insights, provenance: { source: "unavailable", timestamp: null } }, "RTX 4090");
+    expect(down.unavailable).toBe(true);
+    expect(down.summary).toBeNull();
+    expect(down.trend).toEqual([]);
+    expect(selectInsights(insights, "RTX 4090").unavailable).toBe(false);
+  });
+
   it("gives no numbers for a model without a summary", () => {
     const missing = selectInsights(insights, "V100");
     expect(missing.summary).toBeNull();

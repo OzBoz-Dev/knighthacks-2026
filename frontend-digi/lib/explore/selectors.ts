@@ -97,11 +97,12 @@ export function sortOffers(offers: readonly Offer[], { key, direction }: TableSo
 
 // A model without a Databricks summary gets null, never another model's numbers.
 export function selectInsights(insights: MarketInsights, gpuName: string | null) {
-  const summary = insights.summaries.find((row) => row.gpu_name === gpuName) ?? null;
-  const trend = (gpuName && insights.trends[gpuName]) || [];
+  const unavailable = insights.provenance.source === "unavailable";
+  const summary = unavailable ? null : insights.summaries.find((row) => row.gpu_name === gpuName) ?? null;
+  const trend = (!unavailable && gpuName && insights.trends[gpuName]) || [];
   // The label time is the Databricks update time of the summary, not the fetch time.
   const provenance = { source: insights.provenance.source, timestamp: summary?.updated_at ?? insights.provenance.timestamp };
-  return { summary, trend, provenance };
+  return { unavailable, summary, trend, provenance };
 }
 
 export type TrendChartPoint = {
