@@ -1,0 +1,34 @@
+.panel { overflow: hidden; border: 1px solid var(--dg-rule); border-radius: 6px; background: var(--dg-surface); }
+.header { padding: 20px 22px 16px; border-bottom: 1px solid var(--dg-rule); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; }
+.globeStage { min-height: 410px; position: relative; overflow: hidden; background: #1b1d1f; }
+.globe { display: block; width: 100%; height: 100%; min-height: 410px; max-height: 490px; cursor: grab; touch-action: none; }
+.globe:active { cursor: grabbing; }
+.stageCaption { position: absolute; top: 18px; left: 22px; pointer-events: none; z-index: 1; }
+.stageFooter { position: absolute; bottom: 14px; left: 22px; right: 22px; pointer-events: none; }
+.loading { position: absolute; top: 70px; left: 22px; }
+.mapFallback { min-height: 410px; justify-content: center; padding: 30px; }
+.node { cursor: pointer; transition: r 250ms, fill 250ms; }
+.node:focus-visible { outline: none; stroke: #fff; stroke-width: 4; }
+.side { padding: 18px; border-left: 1px solid var(--dg-rule); min-width: 0; }
+.regionList { display: grid; gap: 5px; }
+.regionRow { width: 100%; display: grid; grid-template-columns: 1fr auto; padding: 11px 10px; border: 1px solid transparent; border-radius: 4px; }
+.regionRow:hover { background: var(--dg-elevated); }
+.regionRow[aria-pressed='true'] { border-color: #FF6352; background: #2c3034; }
+.regionRow:focus-visible { outline: 2px solid #FF6352; outline-offset: 2px; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; padding: 14px 0; }
+.footer { border-top: 1px solid var(--dg-rule); padding: 10px 22px; }
+.detail { border-top: 1px solid var(--dg-rule); padding: 18px 22px; display: grid; grid-template-columns: minmax(0,1fr) minmax(240px,0.7fr); gap: 30px; }
+.offer { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; width: 100%; border-bottom: 1px solid var(--dg-rule); }
+.offer:hover { color: #FF6352; }
+.empty { padding: 22px; }
+@media (max-width: 1000px) { .layout { grid-template-columns: minmax(0,1fr) 240px; } }
+@media (max-width: 760px) {
+  .layout, .detail { grid-template-columns: 1fr; }
+  .globeStage { display: none; }
+  .side { border-left: 0; }
+  .header { padding: 16px; }
+  .detail { padding: 16px; gap: 20px; }
+  .footer { padding: 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .node { transition: none; } }
