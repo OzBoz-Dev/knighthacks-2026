@@ -2,6 +2,7 @@ package vast
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"strings"
 
@@ -23,15 +24,34 @@ type rawOffer struct {
 	Verified    bool        `json:"verified"`
 }
 
-// toOffer converts one raw offer. It does not check that the values are valid.
+// Drop reasons. Normalize counts each one.
+const (
+	DropUnparseable    = "unparseable"
+	DropNoGPUName      = "no_gpu_name"
+	DropBadGPUCount    = "bad_gpu_count"
+	DropBadPrice       = "bad_price"
+	DropBadReliability = "bad_reliability"
+)
+
+// toOffer converts one raw offer. The error text is the drop reason.
 func toOffer(raw json.RawMessage) (contract.Offer, error) {
 	var r rawOffer
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return contract.Offer{}, err
+		return contract.Offer{}, errors.New(DropUnparseable)
 	}
 	relia := r.Reliability
 	if relia == nil {
 		relia = r.OldRelia
+	}
+	switch {
+	case strings.TrimSpace(r.GPUName) == "":
+		return contract.Offer{}, errors.New(DropNoGPUName)
+	case r.NumGPUs < 1:
+		return contract.Offer{}, errors.New(DropBadGPUCount)
+	case r.DPHTotal <= 0:
+		return contract.Offer{}, errors.New(DropBadPrice)
+	case relia == nil || *relia < 0 || *relia > 1:
+		return contract.Offer{}, errors.New(DropBadReliability)
 	}
 	gb := math.Round(r.GPURAMMB / 1024) // Vast reports 24564 MiB for a 24 GB card
 	o := contract.Offer{
@@ -42,13 +62,11 @@ func toOffer(raw json.RawMessage) (contract.Offer, error) {
 		TotalVRAMGB:  float64(r.NumGPUs) * gb,
 		Region:       region(r.Geolocation),
 		PricePerHour: r.DPHTotal,
+		Reliability:  *relia,
 		DLPerf:       r.DLPerf,
 		Verified:     r.Verified,
 	}
-	if relia != nil {
-		o.Reliability = *relia
-	}
-	if r.DLPerf != nil && r.DPHTotal > 0 {
+	if r.DLPerf != nil {
 		v := *r.DLPerf / r.DPHTotal
 		o.PerformancePerDollar = &v
 	}
@@ -60,13 +78,17 @@ func region(geolocation string) string {
 	return strings.TrimSpace(geolocation[strings.LastIndex(geolocation, ",")+1:])
 }
 
-// Normalize converts the raw offers. It skips an offer that is not valid JSON.
-func Normalize(raws []json.RawMessage) []contract.Offer {
+// Normalize converts the raw offers. It drops each invalid offer and counts it by reason.
+func Normalize(raws []json.RawMessage) ([]contract.Offer, map[string]int) {
 	offers := make([]contract.Offer, 0, len(raws))
+	drops := map[string]int{}
 	for _, raw := range raws {
-		if o, err := toOffer(raw); err == nil {
-			offers = append(offers, o)
+		o, err := toOffer(raw)
+		if err != nil {
+			drops[err.Error()]++
+			continue
 		}
+		offers = append(offers, o)
 	}
-	return offers
+	return offers, drops
 }
