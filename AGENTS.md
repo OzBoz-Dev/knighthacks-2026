@@ -19,12 +19,12 @@ read the diff before you commit it.
 
 ## Folder ownership
 
-`prd.md` section 7 writes the web app as `/web`. In this repository the web app is `digiGPU/`.
+The web app is `frontend-digi/`. `prd.md` section 7 uses the same path.
 
 | Path | Owner | Scope label |
 |---|---|---|
-| `digiGPU/` (web app) | P1, frontend | `web` |
-| `digiGPU/lib/solana/**`, `digiGPU/components/solana/**`, `digiGPU/app/solana-lab/**` | P3, Solana | `solana` |
+| `frontend-digi/` (web app) | P1, frontend | `web` |
+| `frontend-digi/lib/solana/**`, `frontend-digi/components/solana/**`, `frontend-digi/app/solana-lab/**` | P3, Solana | `solana` |
 | `api/` | P2, backend | `api` |
 | `databricks/` | P4, Databricks | `databricks` |
 | `fixtures/` | P2. P4 adds Databricks exports | `fixtures` |
@@ -185,7 +185,7 @@ Run the checks for each area that your change touches. Paste the results in the 
 
 | Area | Commands |
 |---|---|
-| `digiGPU/` | `npm run lint`, `npm run typecheck`, `npm run build` |
+| `frontend-digi/` | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` |
 | `api/` | `gofmt -l .` (prints nothing), `go vet ./...`, `go test ./...`, `go build ./...` |
 | `databricks/` | Run the changed notebook or script, and paste the row counts |
 
@@ -232,8 +232,8 @@ These rules apply to every file and every message:
 
 ## Area rules
 
-- `digiGPU/AGENTS.md` holds the Next.js rules for the web app. Read it before you edit
-  `digiGPU/`. This Next.js version has breaking changes.
+- `frontend-digi/AGENTS.md` holds the Next.js and UI rules for the web app. Read it before you
+  edit `frontend-digi/`. This Next.js version has breaking changes.
 - Load the Solana wallet provider in a client component with SSR disabled.
 - `api/` is a Go service. `prd.md` section 7, Backend stack, names the libraries. Use the
   standard library first. Run `go mod tidy` after you add or remove an import.

@@ -315,7 +315,7 @@ Status is one of:
 ```text
 ┌──────────────────── Next.js web ────────────────────┐
 │ Explore · Match · My Reservations                   │
-│ React · TypeScript · Tailwind · shadcn/ui · Recharts│
+│ React · TypeScript · Mantine · Recharts             │
 └───────────────┬───────────────────────┬─────────────┘
                 │ REST                  │ Wallet Adapter + web3.js v1
 ┌───────────────▼──── Go API ───────────┐  ┌──────────▼───────────┐
@@ -353,10 +353,10 @@ Add a dependency only when the standard library does not cover the need.
 ### Folder ownership
 
 ```text
-/web                                  P1
-/web/lib/solana/**                    P3
-/web/components/solana/**             P3
-/web/app/solana-lab/**                P3
+/frontend-digi                        P1
+/frontend-digi/lib/solana/**          P3
+/frontend-digi/components/solana/**   P3
+/frontend-digi/app/solana-lab/**      P3
 /api                                  P2
 /databricks                           P4
 /fixtures                             P2 owns; P4 adds Databricks exports
