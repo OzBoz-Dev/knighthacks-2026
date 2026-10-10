@@ -121,6 +121,48 @@ snapshot files. A direct path would mean: a scheduled notebook writes the snapsh
 volume itself, no laptop, no upload step. The public endpoint caps at 64 offers per query, so a
 direct notebook would need the Vast.ai key as a Databricks secret to get the full inventory.
 
+## Vast.ai field units
+
+Issue #72. Every number below comes from `solgpu.bronze.vast_offers_raw`, 2407 rows over two
+snapshots: `20261010T211605Z` (2026-10-10T21:16:05Z, 1100 rows) and `20261010T211616Z`
+(2026-10-10T21:16:16Z, 1307 rows). The silver notebook (#76) applies the rule in the last column.
+
+| Field | Unit or shape | Range seen in bronze | Silver rule |
+|---|---|---|---|
+| `id` | integer offer id | 0 nulls | store as string `offer_id` |
+| `gpu_name` | string, free text | 61 distinct names, 0 nulls | keep as is, #81 maps it to a canonical name |
+| `num_gpus` | integer | 1 to 14 | keep as is |
+| `gpu_ram` | MB per GPU | 3072 to 183359, 0 nulls | `gpu_ram_gb = round(gpu_ram / 1024, 0)` |
+| `gpu_total_ram` | MB for the whole offer | equals `gpu_ram * num_gpus` in 2407 of 2407 rows | compute `total_vram_gb = gpu_ram_gb * num_gpus` |
+| `dph_total` | USD per hour for the whole offer | 0.0296 to 160.0074, 0 nulls, 0 nonpositive | `price_per_hour` |
+| `reliability2` | ratio 0 to 1 | 0.5443 to 0.9997, 0 nulls | `reliability`. `reliability` in the raw row holds the same value in 2407 of 2407 rows, silver reads `reliability2` |
+| `geolocation` | string `"Region, CC"` | 129 distinct values, 0 nulls, 0 without the `, CC` suffix | `region` = the two-letter code after the last comma, `unknown` when absent, #81 maps it |
+| `dlperf` | float, per machine | 1.0 to 5161.1, 0 nulls | keep as is, nullable |
+| `verification` | string | `verified` 1111, `unverified` 667, `deverified` 629 | `verified = (verification = 'verified')`. The raw `verified` key is null in 2407 of 2407 rows |
+
+Why 1024 for `gpu_ram`: a 24 GB card reports 24564 MB (RTX 4090) or 24576 MB (RTX 3090), and both
+round to 24 GB. An 80 GB card reports 81559 MB (H100 SXM) or 81920 MB (A100 SXM4), and both round
+to 80 GB. Division by 1000 gives 25 GB and 82 GB, which no card has. Known limit: the rounded
+value is below the marketing number for some cards (A40 46068 MB gives 45 GB, L4 23034 MB gives
+22 GB, H200 143771 MB gives 140 GB, B200 183359 MB gives 179 GB). Silver stores the rounded value.
+
+Why `dlperf` is per machine: the median RTX 4090 `dlperf` grows with `num_gpus`. Groups with fewer
+than 20 rows are left out.
+
+| `num_gpus` | rows | median `dlperf` | median `dlperf / num_gpus` |
+|---:|---:|---:|---:|
+| 1 | 70 | 97.0 | 97.0 |
+| 2 | 50 | 175.5 | 87.8 |
+| 4 | 35 | 298.2 | 74.6 |
+| 8 | 23 | 404.0 | 50.5 |
+
+The same values appear in the #37 comment from the public feed (1x RTX 4090 about 97, 2x about
+162, 4x about 292 to 300). The ranking rule in #37 stands: silver and gold use `dlperf` as Vast.ai
+reports it and do not divide by `num_gpus`.
+
+`api/NOTES.md` (#94) does not exist yet. P2 must confirm these units there; if they differ, the
+silver notebook changes, not this table.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
