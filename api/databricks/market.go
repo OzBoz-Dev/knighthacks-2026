@@ -11,11 +11,11 @@ import (
 )
 
 // goldSchema is the catalog and schema of the gold tables.
-// The column names are the PRD section 8 field names until #20 fixes them.
+// The column names match databricks/sql/30_gold_market_summary.sql and 31_gold_price_trends.sql.
 // AllRegions is the region value of the all-regions trend rows.
-const AllRegions = "ALL"
+const AllRegions = "all"
 
-const goldSchema = "workspace.gold"
+const goldSchema = "solgpu.gold"
 
 const summaryQuery = `SELECT gpu_name, listing_count, lowest_price, median_price, p90_price, median_reliability, updated_at
 FROM ` + goldSchema + `.gpu_market_summary
@@ -23,8 +23,8 @@ WHERE gpu_name = :gpu_name
 ORDER BY updated_at DESC
 LIMIT 1`
 
-// A missing region means the rows with region = 'ALL'. P4 must add those all-regions rows
-// to gold.gpu_price_trends in #20, so a chart never mixes regions.
+// A missing region means the rows with region = 'all', which gold.gpu_price_trends holds (#101),
+// so a chart never mixes regions.
 const trendsQuery = "SELECT `timestamp`, minimum_price, median_price, p10_price, p90_price, listing_count\n" +
 	"FROM " + goldSchema + ".gpu_price_trends\n" +
 	"WHERE gpu_name = :gpu_name AND region = :region\n" +
