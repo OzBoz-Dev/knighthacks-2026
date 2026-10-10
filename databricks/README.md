@@ -58,6 +58,51 @@ starts the warehouse, prints each warehouse state with the elapsed seconds, runs
 If the script prints `gold table missing: run the pipeline (#116) before the demo`, the warehouse
 runs but gold is empty. Run the pipeline job, then run the warm-up again.
 
+## Snapshot upload
+
+`databricks/upload_snapshots.py` copies each new `snapshot_*.json` file from the collector
+directory to the volume `solgpu.bronze.raw_snapshots` through the Files API. It needs Python 3.12
+and no other package. A local manifest lists each uploaded file with its size and upload time, so
+a second run skips it. The script ignores `*.tmp` files, because the collector writes to a temp
+file and renames it when the write is complete.
+
+| Variable | Required | Default |
+|---|---|---|
+| `DATABRICKS_HOST` | yes | none |
+| `DATABRICKS_TOKEN` | yes | none |
+| `SNAPSHOT_DIR` | yes | none. The directory the Go collector (#11) writes. |
+| `SNAPSHOT_VOLUME_PATH` | no | `/Volumes/solgpu/bronze/raw_snapshots` |
+| `UPLOAD_MANIFEST` | no | `<SNAPSHOT_DIR>/.uploaded.json` |
+
+```
+python databricks/upload_snapshots.py
+```
+
+The script prints one line for each uploaded file, one line `failed <name>: <error>` for each file
+that did not upload, `verified <n> files in volume` after it lists the volume, and one summary line
+`uploaded=N skipped=N failed=N`. It exits 0 when every file is in the volume, 1 when a file failed
+or the volume listing does not match the manifest, and 2 when a variable is missing.
+
+Retry rule: a failed file is not in the manifest, so the next run uploads it again. A failed file
+does not stop the other files. The scheduler (#56) runs the script every 10 minutes.
+
+In Git Bash on Windows, set `MSYS_NO_PATHCONV=1` when you pass `SNAPSHOT_VOLUME_PATH`, or the
+shell converts the `/Volumes/...` path to a Windows path.
+
+### Manual upload fallback
+
+If the script cannot run, upload one file by hand:
+
+1. Open the workspace. Go to Catalog, `solgpu`, `bronze`, Volumes, `raw_snapshots`.
+2. Click "Upload to this volume" and choose the newest `snapshot_*.json` from the snapshot
+   directory.
+3. Confirm that the file appears in the volume list.
+4. Run the pipeline job by hand (Workflows, `solgpu-pipeline`, Run now), or run the bronze ingest
+   notebook.
+
+CLI alternative, in one line: `databricks fs cp <file> dbfs:/Volumes/solgpu/bronze/raw_snapshots/`.
+This path needs the Databricks CLI installed and configured. The Python script needs no CLI.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
