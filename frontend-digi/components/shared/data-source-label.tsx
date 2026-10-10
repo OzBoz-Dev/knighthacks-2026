@@ -3,7 +3,7 @@ import { describeProvenance, type Provenance, type ProvenanceKind } from "@/lib/
 
 const COLOR: Record<ProvenanceKind, string> = {
   live: "green",
-  saved: "signal",
+  saved: "lava",
   sample: "gray",
   unavailable: "gray",
   unknown: "gray",

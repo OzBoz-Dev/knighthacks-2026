@@ -47,7 +47,7 @@ export function MarketOverview({ overview, sample, onRegion, onModel }: {
           subtitle={sample ? "GPU index · illustrative 24-hour sample · UTC" : "GPU index · fixed single-GPU basket"}
           aside={hasSeries ? (
             <Group gap={6} wrap="nowrap">
-              <Text fz={20} fw={600} ff="monospace" className="tabular">{formatUsdPerHour(overview.index)}</Text>
+              <Text fz={20} fw={500} ff="monospace" className="tabular">{formatUsdPerHour(overview.index)}</Text>
               <Tooltip label="Equal-weight mean of model-median single-GPU hourly quotes for a fixed model basket.">
                 <IconInfoCircle size={15} color="var(--mantine-color-dimmed)" aria-label="Index methodology" tabIndex={0} />
               </Tooltip>
@@ -59,7 +59,7 @@ export function MarketOverview({ overview, sample, onRegion, onModel }: {
               h={260}
               data={overview.series.map((point) => ({ ...point, time: point.timestamp.slice(11, 16) }))}
               dataKey="time"
-              series={[{ name: "price", label: sample ? "Sample index" : "Index", color: "signal.4" }]}
+              series={[{ name: "price", label: sample ? "Sample index" : "Index", color: "lava.5" }]}
               curveType="linear"
               withDots={false}
               withGradient={false}
@@ -87,7 +87,7 @@ export function MarketOverview({ overview, sample, onRegion, onModel }: {
                     <Text fz={14}>{row.region}</Text>
                     <Text fz={14} ff="monospace" className="tabular">{formatUsd(row.price)}</Text>
                   </Group>
-                  <Progress size={4} radius={0} color="signal.4" value={maxRegionPrice > 0 ? row.price / maxRegionPrice * 100 : 0} aria-hidden />
+                  <Progress size={4} radius={0} color="lava.5" value={maxRegionPrice > 0 ? row.price / maxRegionPrice * 100 : 0} aria-hidden />
                 </UnstyledButton>
               ))}
               <Text c="dimmed" fz={12} mt="sm">Select a region to view its offers.</Text>
@@ -116,7 +116,7 @@ export function MarketOverview({ overview, sample, onRegion, onModel }: {
               {overview.priceChanges.slice(0, 5).map((row) => {
                 const flat = row.change === null || row.change === 0;
                 const Icon = flat ? IconMinus : row.change! > 0 ? IconArrowUpRight : IconArrowDownRight;
-                const color = flat ? "dimmed" : row.change! > 0 ? "red.4" : "green.4";
+                const color = flat ? "dimmed" : row.change! > 0 ? "var(--dg-up)" : "green.4";
                 return (
                   <li key={`${row.model}-${row.region}`} className={styles.listRow}>
                     <Text fz={14}>{row.model} <Text component="span" fz={13} c="dimmed">· {row.region}</Text></Text>

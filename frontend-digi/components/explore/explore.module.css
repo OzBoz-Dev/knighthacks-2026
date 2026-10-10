@@ -197,7 +197,7 @@
 
 .regionRow:hover,
 .listRow:hover {
-  color: var(--mantine-color-signal-3);
+  color: var(--mantine-color-lava-3);
 }
 
 @media (max-width: 1280px) {

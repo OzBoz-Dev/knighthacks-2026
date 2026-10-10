@@ -1,18 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Mono, DM_Sans } from "next/font/google";
 import { ColorSchemeScript, mantineHtmlProps } from "@mantine/core";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AppShellLayout } from "@/components/layout/app-shell";
 import { palette } from "@/palette";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  weight: ["400", "500"],
   subsets: ["latin"],
 });
 
@@ -34,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       {...mantineHtmlProps}
       data-mantine-color-scheme="dark"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${dmSans.variable} ${dmMono.variable}`}
     >
       <head>
         <ColorSchemeScript forceColorScheme="dark" />

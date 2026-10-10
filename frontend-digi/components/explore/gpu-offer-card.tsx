@@ -26,13 +26,13 @@ export function GpuOfferCard({ offer, reliabilityUnit, onDetails }: { offer: Off
           <Text component="h3" className={styles.offerTitle}>{offer.gpu_name}</Text>
         </Box>
         <Box ta="right" style={{ flexShrink: 0 }}>
-          <Text fz={18} fw={600} ff="monospace" className="tabular" lh={1.1}>{formatGb(offer.gpu_ram_gb)}</Text>
+          <Text fz={18} fw={500} ff="monospace" className="tabular" lh={1.1}>{formatGb(offer.gpu_ram_gb)}</Text>
           <Text fz={12} c="dimmed">per GPU</Text>
         </Box>
       </Group>
       <div className={styles.quote}>
         <Group gap={6} align="baseline" wrap="nowrap">
-          <Text component="span" fz={30} fw={600} ff="monospace" className="tabular" lh={1} style={{ letterSpacing: "-1px" }}>{formatUsd(offer.price_per_hour)}</Text>
+          <Text component="span" fz={30} fw={500} ff="monospace" className="tabular" lh={1} style={{ letterSpacing: "-1px" }}>{formatUsd(offer.price_per_hour)}</Text>
           <Text component="span" fz={14} c="dimmed">/ hour</Text>
         </Group>
         <Group gap={8} mt={6}>

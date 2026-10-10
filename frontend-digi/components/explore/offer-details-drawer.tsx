@@ -40,7 +40,7 @@ export function OfferDetailsDrawer({ offer, onClose, provenance, reliabilityUnit
           <Text ff="monospace" fz={13} style={{ wordBreak: "break-all", userSelect: "all" }}>{offer.id}</Text>
           <Group justify="space-between" align="baseline" mt="md" wrap="wrap" gap="xs">
             <Text fz={22} fw={600}>{offer.gpu_name}</Text>
-            <Text fz={20} fw={600} ff="monospace" className="tabular">{formatUsdPerHour(offer.price_per_hour)}</Text>
+            <Text fz={20} fw={500} ff="monospace" className="tabular">{formatUsdPerHour(offer.price_per_hour)}</Text>
           </Group>
           <Text fz={12} c="dimmed">Hourly quote for the whole offer</Text>
         </Box>

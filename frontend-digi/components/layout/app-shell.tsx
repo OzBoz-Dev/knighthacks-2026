@@ -32,7 +32,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         <AppShell.Section pt="xs" pb={36}>
           <Burger hiddenFrom="sm" opened={opened} onClick={close} size="sm" mb="md" aria-label="Close navigation" />
           <Group renderRoot={(props) => <Link {...props} href="/" onClick={close} />} gap={10} wrap="nowrap" style={{ textDecoration: "none" }}>
-            <Box w={4} h={26} bg="signal.4" aria-hidden />
+            <Box w={16} h={16} bg="lava.5" style={{ borderRadius: 2 }} aria-hidden />
             <Text fw={650} fz={20} c="dark.0" lh={1} style={{ letterSpacing: "-0.4px" }}>digiGPU</Text>
           </Group>
         </AppShell.Section>
@@ -56,7 +56,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
                   styles={{
                     root: {
                       borderRadius: 2,
-                      borderLeft: `2px solid ${active ? "var(--mantine-color-signal-4)" : "transparent"}`,
+                      borderLeft: `2px solid ${active ? "var(--mantine-color-lava-5)" : "transparent"}`,
                       background: active ? "var(--dg-elevated)" : undefined,
                       color: active ? "var(--mantine-color-dark-0)" : "var(--mantine-color-dark-1)",
                     },

@@ -24,8 +24,8 @@ body {
   z-index: 1000;
   padding: 0.5rem 1rem;
   border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-signal-4);
-  color: var(--mantine-color-black);
+  background: var(--mantine-color-lava-6);
+  color: var(--mantine-color-white);
   font-weight: 600;
 }
 
@@ -34,7 +34,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--mantine-color-signal-4);
+  outline: 2px solid var(--mantine-color-lava-5);
   outline-offset: 2px;
 }
 
