@@ -13,8 +13,8 @@ section 9.
 | Edition | Databricks Free Edition |
 | Workspace URL | `https://dbc-ee6500ab-419b.cloud.databricks.com` |
 | SQL warehouse | `Serverless Starter Warehouse` (serverless, 2X-Small) |
-| Catalog | `digigpu`, with the schemas `bronze`, `silver`, and `gold` |
-| Raw snapshot volume | `digigpu.bronze.raw_snapshots` |
+| Catalog | `solgpu`, with the schemas `bronze`, `silver`, and `gold` |
+| Raw snapshot volume | `solgpu.bronze.raw_snapshots` |
 
 The Go API and the scripts in this folder read three environment variables: `DATABRICKS_HOST`,
 `DATABRICKS_SQL_WAREHOUSE_ID`, and `DATABRICKS_TOKEN`. P4 gives the values to P2 through a private
