@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Group, Input, MultiSelect, NumberInput, Paper, SegmentedControl, Select, SimpleGrid, Text } from "@mantine/core";
+import { Button, Group, MultiSelect, NumberInput, Paper, Radio, Select, SimpleGrid, Text } from "@mantine/core";
 import type { FormEvent, ReactNode } from "react";
 import type { MatchOptions } from "@/lib/api/match";
 import type { MatchFormErrors, MatchFormValues, Priority } from "@/lib/match/form";
@@ -39,9 +39,12 @@ export function MatchForm({ values, errors, options, busy = false, actions, onCh
         <NumberInput id={FIELD_IDS.minReliability} label="Minimum reliability (%)" description="Default 95%" min={0} max={100} decimalScale={1} allowNegative={false} suffix="%" value={values.minReliability} onChange={(minReliability) => onChange({ minReliability })} error={errors.minReliability} required />
         <MultiSelect label="GPU models (optional)" description={choiceHint ?? "Leave empty to allow any model"} placeholder={values.gpuNames.length ? undefined : "Any model"} data={[...new Set([...choices.gpuNames, ...values.gpuNames])]} value={values.gpuNames} onChange={(gpuNames) => onChange({ gpuNames })} disabled={options.status !== "ready"} searchable clearable />
         <Select label="Region (optional)" description={choiceHint ?? "Leave empty to allow any region"} placeholder="Any region" data={[...new Set([...choices.regions, ...(values.region ? [values.region] : [])])]} value={values.region} onChange={(region) => onChange({ region })} disabled={options.status !== "ready"} searchable clearable />
-        <Input.Wrapper label="Priority" id="match-priority" labelElement="div" description="How results are ranked">
-          <SegmentedControl fullWidth mt={4} data={PRIORITIES} value={values.priority} onChange={(priority) => onChange({ priority: priority as Priority })} aria-labelledby="match-priority-label" />
-        </Input.Wrapper>
+        {/* Radio.Group, not SegmentedControl: SegmentedControl calls Math.random in render, which fails the Cache Components prerender. */}
+        <Radio.Group label="Priority" description="How results are ranked" value={values.priority} onChange={(priority) => onChange({ priority: priority as Priority })}>
+          <Group gap="md" mt={8}>
+            {PRIORITIES.map(({ value, label }) => <Radio key={value} value={value} label={label} />)}
+          </Group>
+        </Radio.Group>
       </SimpleGrid>
       <Group justify="space-between" mt="lg" gap="sm">
         <Group gap="sm">
