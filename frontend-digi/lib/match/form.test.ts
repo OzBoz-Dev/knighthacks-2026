@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildMatchRequest, INITIAL_MATCH_VALUES } from "./form";
+import { buildMatchRequest, formMatchesRequest, INITIAL_MATCH_VALUES } from "./form";
 
 const valid = { ...INITIAL_MATCH_VALUES, minVram: 24, maxPrice: 2 };
+
+describe("formMatchesRequest", () => {
+  it("is true only while the form still builds the submitted request", () => {
+    const submitted = buildMatchRequest(valid).request!;
+    expect(formMatchesRequest(valid, submitted)).toBe(true);
+    expect(formMatchesRequest({ ...valid, maxPrice: 3 }, submitted)).toBe(false);
+    expect(formMatchesRequest({ ...valid, region: "US" }, submitted)).toBe(false);
+    expect(formMatchesRequest({ ...valid, maxPrice: "" }, submitted)).toBe(false);
+  });
+});
 
 describe("buildMatchRequest", () => {
   it("builds a MatchRequest and sends 95% reliability as the ratio 0.95", () => {

@@ -26,6 +26,12 @@ export const INITIAL_MATCH_VALUES: MatchFormValues = {
 
 const finite = (value: number | string) => (typeof value === "number" && Number.isFinite(value) ? value : null);
 
+// True when the form still builds exactly the request that produced the results on screen.
+export function formMatchesRequest(values: MatchFormValues, request: MatchRequest): boolean {
+  const current = buildMatchRequest(values).request;
+  return current !== null && JSON.stringify(current) === JSON.stringify(request);
+}
+
 export function buildMatchRequest(values: MatchFormValues): { request: MatchRequest; errors: null } | { request: null; errors: MatchFormErrors } {
   const minVram = finite(values.minVram);
   const maxPrice = finite(values.maxPrice);
