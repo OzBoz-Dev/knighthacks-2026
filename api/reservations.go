@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -16,6 +17,7 @@ import (
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/reservation"
+	solanaverify "github.com/OzBoz-Dev/knighthacks-2026/api/solana"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 )
 
@@ -125,4 +127,86 @@ func decodeBody(w http.ResponseWriter, r *http.Request, v any) bool {
 	}
 	httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, msg)
 	return false
+}
+
+// rpcTimeout bounds one devnet RPC call, so a slow node cannot hold a request.
+const rpcTimeout = 10 * time.Second
+
+// confirmResponse is the Reservation with the names of the checks that failed.
+type confirmResponse struct {
+	contract.Reservation
+	FailedChecks []string `json:"failed_checks"`
+}
+
+// confirmReservation handles POST /api/reservations/{id}/confirm. It checks the memo transaction on devnet.
+// It confirms the reservation only when every check passes. A confirmed reservation returns with no RPC call.
+func confirmReservation(db *sql.DB, chain solanaverify.TxGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Signature string `json:"signature"`
+		}
+		if !decodeBody(w, r, &body) {
+			return
+		}
+		if _, err := solana.SignatureFromBase58(body.Signature); err != nil {
+			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, "The signature is not a valid Solana transaction signature.")
+			return
+		}
+		res, ok := getReservation(w, db, r.PathValue("id"))
+		if !ok {
+			return
+		}
+		if res.Status == contract.StatusConfirmed {
+			httpx.WriteJSON(w, http.StatusOK, confirmResponse{res, []string{}})
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), rpcTimeout)
+		defer cancel()
+		result, err := solanaverify.Verify(ctx, chain, body.Signature, expected(res))
+		if err != nil {
+			slog.Error("confirm: devnet check", "id", res.ID, "err", err)
+			httpx.WriteError(w, http.StatusServiceUnavailable, httpx.CodeUpstreamUnavailable, "Solana devnet did not answer. Try again in a minute.")
+			return
+		}
+		failed := []string{}
+		for _, c := range result.Checks {
+			if !c.Passed {
+				failed = append(failed, c.Name)
+			}
+		}
+		if len(failed) == 0 {
+			err = store.MarkConfirmed(db, res.ID, body.Signature, *result.Slot)
+		} else {
+			err = store.MarkFailed(db, res.ID)
+		}
+		// ErrNotPending: the reservation already failed, or a second call marked it first. The stored status stays.
+		if err != nil && !errors.Is(err, store.ErrNotPending) {
+			slog.Error("confirm: store", "id", res.ID, "err", err)
+			httpx.WriteError(w, http.StatusInternalServerError, httpx.CodeInternal, "The confirmation failed. Try again.")
+			return
+		}
+		if res, ok = getReservation(w, db, res.ID); ok {
+			httpx.WriteJSON(w, http.StatusOK, confirmResponse{res, failed})
+		}
+	}
+}
+
+// getReservation reads the reservation. On an error it writes the 404 or 500 response and returns false.
+func getReservation(w http.ResponseWriter, db *sql.DB, id string) (contract.Reservation, bool) {
+	res, err := store.Get(db, id)
+	if errors.Is(err, store.ErrNotFound) {
+		httpx.WriteError(w, http.StatusNotFound, httpx.CodeNotFound, "No reservation has that ID.")
+		return res, false
+	}
+	if err != nil {
+		slog.Error("get reservation", "id", id, "err", err)
+		httpx.WriteError(w, http.StatusInternalServerError, httpx.CodeInternal, "The reservation could not be read. Try again.")
+		return res, false
+	}
+	return res, true
+}
+
+// expected gives the values from the stored reservation that the devnet memo must match.
+func expected(res contract.Reservation) solanaverify.Expected {
+	return solanaverify.Expected{Prefix: reservation.MemoPrefix, ReservationID: res.ID, Wallet: res.Wallet, PayloadHash: res.PayloadHash}
 }

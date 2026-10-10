@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gagliardetto/solana-go/rpc"
+
 	"github.com/OzBoz-Dev/knighthacks-2026/api/collector"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
@@ -48,6 +50,7 @@ func main() {
 	}
 	offers := newRecentSnapshots(source)
 	mux.Handle("POST /api/reservations", createReservation(db, offers))
+	mux.Handle("POST /api/reservations/{id}/confirm", confirmReservation(db, rpc.New(cfg.SolanaRPCURL)))
 	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
 	mux.HandleFunc("POST /api/match", matchHandler(offers, medians.get))
 

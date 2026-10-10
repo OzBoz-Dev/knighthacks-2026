@@ -1,14 +1,18 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
 	"encoding/json"
+
+	"github.com/gagliardetto/solana-go/rpc"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/reservation"
@@ -108,5 +112,134 @@ func TestCreateReservationBodyMessages(t *testing.T) {
 		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), want) {
 			t.Errorf("status %d body %s, want %q", w.Code, w.Body, want)
 		}
+	}
+}
+
+// The values that the recorded transactions in solana/testdata hold.
+const (
+	txGoodSig   = "3C2a9AcSpgQkUPxsbQ7mxvdtzfLmvkb6efFACaxVyinEevv9g19CEMQbu79gWVFeu3PVHPYphaEPekaYcGumMpyM"
+	txFailedSig = "2L5QXv1Aj3oUfy6eDFz5tsBjT1m97A21e5zk5z8vwxU1yCRULWRa66tAHmPj27TegCWPv6puw9Kq87fnKZcH9Mqt"
+	txWallet    = "GNN5rHKgxkUE3zCdrZxgPmciLSiVRezCpQVyNW2W4Zk3"
+	txResID     = "3b1f8c2a-6d4e-4f7a-9c0b-2e5d8a1f4c6b"
+	txHash      = "8675af8fe6185424cf3f4b29027aa829bf4735064d18879d698fcaa91f6e8ecc"
+)
+
+// recordedRPC starts a devnet RPC server that returns the recorded file, or a 500 for an empty name.
+// calls counts the requests.
+func recordedRPC(t *testing.T, file string) (client *rpc.Client, calls *int) {
+	t.Helper()
+	var body []byte
+	if file != "" {
+		var err error
+		if body, err = os.ReadFile("solana/testdata/" + file); err != nil {
+			t.Fatal(err)
+		}
+	}
+	calls = new(int)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		*calls++
+		if body == nil {
+			http.Error(w, "node down", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+	return rpc.New(srv.URL), calls
+}
+
+// pendingDB stores the pending reservation that the recorded transactions sign.
+func pendingDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := store.Open(filepath.Join(t.TempDir(), "t.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { db.Close() })
+	if err := store.Create(db, contract.Reservation{ID: txResID, RequestID: "req_1", SnapshotID: "snap_1", OfferID: "o1",
+		Wallet: txWallet, GPUName: "RTX 4090", PricePerHour: 0.42, MinVRAMGB: 24, MaxPricePerHour: 1, Priority: "balanced",
+		CreatedAt: "2026-10-10T20:05:00.000Z", CanonicalPayload: "{}", PayloadHash: txHash, Status: contract.StatusPending}); err != nil {
+		t.Fatal(err)
+	}
+	return db
+}
+
+func confirm(t *testing.T, db *sql.DB, chain *rpc.Client, id, body string) (int, confirmResponse) {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle("POST /api/reservations/{id}/confirm", confirmReservation(db, chain))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/reservations/"+id+"/confirm", strings.NewReader(body)))
+	var resp confirmResponse
+	if w.Code == http.StatusOK {
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatal(err)
+		}
+	} else if !strings.Contains(w.Body.String(), `"error"`) {
+		t.Fatalf("status %d with no error shape: %s", w.Code, w.Body)
+	}
+	return w.Code, resp
+}
+
+func TestConfirmReservation(t *testing.T) {
+	db := pendingDB(t)
+	chain, calls := recordedRPC(t, "get_transaction_good.json")
+	code, resp := confirm(t, db, chain, txResID, `{"signature":"`+txGoodSig+`"}`)
+	if code != http.StatusOK || resp.Status != contract.StatusConfirmed || resp.Signature == nil || *resp.Signature != txGoodSig ||
+		resp.Slot == nil || *resp.Slot != 418392215 || resp.FailedChecks == nil || len(resp.FailedChecks) != 0 || resp.ID != txResID {
+		t.Fatalf("status %d response %+v", code, resp)
+	}
+	if got, _ := store.Get(db, txResID); got.Status != contract.StatusConfirmed || *got.Slot != 418392215 {
+		t.Fatalf("stored %+v", got)
+	}
+
+	// A repeat call returns the same result and makes no RPC call.
+	code, again := confirm(t, db, chain, txResID, `{"signature":"`+txGoodSig+`"}`)
+	if code != http.StatusOK || *calls != 1 || again.Status != resp.Status || *again.Signature != *resp.Signature || *again.Slot != *resp.Slot {
+		t.Fatalf("repeat: status %d, %d calls, %+v", code, *calls, again)
+	}
+}
+
+func TestConfirmReservationFailedCheck(t *testing.T) {
+	db := pendingDB(t)
+	chain, _ := recordedRPC(t, "get_transaction_failed.json")
+	code, resp := confirm(t, db, chain, txResID, `{"signature":"`+txFailedSig+`"}`)
+	if code != http.StatusOK || resp.Status != contract.StatusFailed || len(resp.FailedChecks) != 1 || resp.FailedChecks[0] != "confirmed" ||
+		resp.Signature != nil {
+		t.Fatalf("status %d response %+v", code, resp)
+	}
+	if got, _ := store.Get(db, txResID); got.Status != contract.StatusFailed {
+		t.Fatalf("stored %+v", got)
+	}
+	// A repeat call gives the same result.
+	if code, again := confirm(t, db, chain, txResID, `{"signature":"`+txFailedSig+`"}`); code != http.StatusOK ||
+		again.Status != contract.StatusFailed || len(again.FailedChecks) != 1 {
+		t.Fatalf("repeat: status %d response %+v", code, again)
+	}
+}
+
+func TestConfirmReservationErrors(t *testing.T) {
+	db := pendingDB(t)
+	good, _ := recordedRPC(t, "get_transaction_good.json")
+	down, _ := recordedRPC(t, "")
+	for name, tc := range map[string]struct {
+		chain *rpc.Client
+		id    string
+		body  string
+		want  int
+	}{
+		"unknown id":        {good, "res_none", `{"signature":"` + txGoodSig + `"}`, http.StatusNotFound},
+		"bad signature":     {good, txResID, `{"signature":"abc"}`, http.StatusBadRequest},
+		"missing signature": {good, txResID, `{}`, http.StatusBadRequest},
+		"not json":          {good, txResID, `signature`, http.StatusBadRequest},
+		"rpc down":          {down, txResID, `{"signature":"` + txGoodSig + `"}`, http.StatusServiceUnavailable},
+	} {
+		if code, _ := confirm(t, db, tc.chain, tc.id, tc.body); code != tc.want {
+			t.Errorf("%s: status %d, want %d", name, code, tc.want)
+		}
+	}
+	if got, _ := store.Get(db, txResID); got.Status != contract.StatusPending {
+		t.Fatalf("an error must not change the reservation: %+v", got)
 	}
 }
