@@ -284,3 +284,61 @@ func TestListReservations(t *testing.T) {
 		}
 	}
 }
+
+func verify(t *testing.T, db *sql.DB, chain *rpc.Client, id string) (int, string) {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle("GET /api/reservations/{id}/verify", verifyReservation(db, chain))
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/reservations/"+id+"/verify", nil))
+	return w.Code, w.Body.String()
+}
+
+func TestVerifyReservation(t *testing.T) {
+	db := pendingDB(t)
+	chain, _ := recordedRPC(t, "get_transaction_good.json")
+	if err := store.MarkConfirmed(db, txResID, txGoodSig, 418392215); err != nil {
+		t.Fatal(err)
+	}
+	code, body := verify(t, db, chain, txResID)
+	var resp struct {
+		ReservationID string  `json:"reservation_id"`
+		Signature     string  `json:"signature"`
+		Slot          *uint64 `json:"slot"`
+		Checks        []struct {
+			Name   string `json:"name"`
+			Passed bool   `json:"passed"`
+			Detail string `json:"detail"`
+		} `json:"checks"`
+	}
+	json.Unmarshal([]byte(body), &resp)
+	names := []string{"exists", "signer", "reservation_id", "memo_hash", "confirmed"}
+	if code != http.StatusOK || resp.ReservationID != txResID || resp.Signature != txGoodSig || resp.Slot == nil ||
+		*resp.Slot != 418392215 || len(resp.Checks) != len(names) {
+		t.Fatalf("status %d body %s", code, body)
+	}
+	for i, c := range resp.Checks {
+		if c.Name != names[i] || !c.Passed {
+			t.Errorf("check %d = %+v", i, c)
+		}
+	}
+	if got, _ := store.Get(db, txResID); got.Status != contract.StatusConfirmed {
+		t.Fatalf("verify must not change the reservation: %+v", got)
+	}
+}
+
+func TestVerifyReservationErrors(t *testing.T) {
+	good, _ := recordedRPC(t, "get_transaction_good.json")
+	down, _ := recordedRPC(t, "")
+	pending := pendingDB(t)
+	if code, body := verify(t, pending, good, "res_none"); code != http.StatusNotFound || !strings.Contains(body, `"not_found"`) {
+		t.Fatalf("unknown id: %d %s", code, body)
+	}
+	if code, body := verify(t, pending, good, txResID); code != http.StatusBadRequest || !strings.Contains(body, "no signature") {
+		t.Fatalf("no signature: %d %s", code, body)
+	}
+	store.MarkConfirmed(pending, txResID, txGoodSig, 418392215)
+	if code, body := verify(t, pending, down, txResID); code != http.StatusServiceUnavailable || !strings.Contains(body, `"upstream_unavailable"`) {
+		t.Fatalf("rpc down: %d %s", code, body)
+	}
+}

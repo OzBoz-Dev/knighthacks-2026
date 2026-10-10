@@ -228,3 +228,35 @@ func listReservations(db *sql.DB) http.HandlerFunc {
 		httpx.WriteJSON(w, http.StatusOK, list)
 	}
 }
+
+// verifyResponse has one row per devnet check, in the order of the solana package.
+type verifyResponse struct {
+	ReservationID string               `json:"reservation_id"`
+	Signature     string               `json:"signature"`
+	Slot          *uint64              `json:"slot"`
+	Checks        []solanaverify.Check `json:"checks"`
+}
+
+// verifyReservation handles GET /api/reservations/{id}/verify. It runs the devnet checks again
+// against the stored payload and signature. It does not change the reservation.
+func verifyReservation(db *sql.DB, chain solanaverify.TxGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		res, ok := getReservation(w, db, r.PathValue("id"))
+		if !ok {
+			return
+		}
+		if res.Signature == nil {
+			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, "This reservation has no signature yet. Sign and confirm it first.")
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), rpcTimeout)
+		defer cancel()
+		result, err := solanaverify.Verify(ctx, chain, *res.Signature, expected(res))
+		if err != nil {
+			slog.Error("verify: devnet check", "id", res.ID, "err", err)
+			httpx.WriteError(w, http.StatusServiceUnavailable, httpx.CodeUpstreamUnavailable, "Solana devnet did not answer. Try again in a minute.")
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, verifyResponse{res.ID, *res.Signature, result.Slot, result.Checks})
+	}
+}
