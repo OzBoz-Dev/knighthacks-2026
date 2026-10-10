@@ -6,6 +6,41 @@ This folder holds the Databricks pipeline: the setup SQL, the bronze, silver, an
 tables, the pipeline job, the dashboard export, and the snapshot upload script. See `prd.md`
 section 9.
 
+## Workspace
+
+| Item | Value |
+|---|---|
+| Edition | Databricks Free Edition |
+| Workspace URL | `https://dbc-ee6500ab-419b.cloud.databricks.com` |
+| SQL warehouse | `Serverless Starter Warehouse` (serverless, 2X-Small) |
+| Catalog | `digigpu`, with the schemas `bronze`, `silver`, and `gold` |
+| Raw snapshot volume | `digigpu.bronze.raw_snapshots` |
+
+The Go API and the scripts in this folder read three environment variables: `DATABRICKS_HOST`,
+`DATABRICKS_SQL_WAREHOUSE_ID`, and `DATABRICKS_TOKEN`. P4 gives the values to P2 through a private
+team channel. This repository holds no token.
+
+The warehouse stops when it is idle. The first statement after a stop takes about 10 seconds.
+Run the warm-up step before the demo.
+
+### Snapshot file contract
+
+The Go collector (#11) writes one file for each snapshot. The upload script copies each file to the
+volume, and the bronze ingest reads it. One file is one JSON object:
+
+```json
+{
+  "snapshot_id": "20261010T204000Z",
+  "captured_at": "2026-10-10T20:40:00Z",
+  "offers": [ { "id": 48857502, "gpu_name": "RTX 4090", "num_gpus": 1, "...": "raw Vast.ai fields" } ]
+}
+```
+
+- `snapshot_id` is a string that is unique for each capture.
+- `captured_at` is the capture time in UTC, RFC 3339.
+- `offers` is the raw `offers` array from the Vast.ai response, with no change.
+- The file name is `snapshot_<captured_at as 20261010T204000Z>.json`.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
