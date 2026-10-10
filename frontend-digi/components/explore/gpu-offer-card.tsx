@@ -1,15 +1,15 @@
 "use client";
 
-import { Badge, Box, Button, Card, Group, Text } from "@mantine/core";
+import { Box, Button, Card, Group, Text } from "@mantine/core";
 import { IconArrowRight } from "@tabler/icons-react";
 import Image from "next/image";
 import type { Offer } from "@/lib/api/types";
 import { formatGb, formatPercent, formatUsd, type PercentUnit } from "@/lib/format";
+import { MarketPositionBadge } from "./market-position-badge";
 import styles from "./explore.module.css";
 
 export function GpuOfferCard({ offer, reliabilityUnit, onDetails }: { offer: Offer; reliabilityUnit: PercentUnit; onDetails: () => void }) {
   const multi = offer.num_gpus > 1;
-  const goodPrice = offer.market_position_pct !== null && offer.market_position_pct <= -15;
   return (
     <Card component="article" withBorder radius="sm" padding={11} bg="var(--dg-surface)" className={styles.offerCard}>
       <Group gap={8} wrap="nowrap" align="flex-start">
@@ -28,8 +28,8 @@ export function GpuOfferCard({ offer, reliabilityUnit, onDetails }: { offer: Off
           <Text component="span" fz={11} c="dimmed">/hr</Text>
           {multi && <Text fz={11} c="dimmed">Whole offer · {formatGb(offer.total_vram_gb)} total VRAM</Text>}
         </Box>
-        {goodPrice && <Badge color="green" size="xs" variant="outline" tt="none">Good price</Badge>}
       </Group>
+      <MarketPositionBadge pct={offer.market_position_pct} gpuName={offer.gpu_name} />
       <Group justify="space-between" gap={5} wrap="nowrap" pt={7} style={{ borderTop: "1px solid var(--dg-rule)" }}>
         <Text fz={11} c="dimmed" style={{ minWidth: 0 }}>
           {formatPercent(offer.reliability, reliabilityUnit)} reliable · {offer.verified ? "Verified" : "Unverified"}
