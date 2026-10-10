@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/OzBoz-Dev/knighthacks-2026/api/collector"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
@@ -54,6 +55,12 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	if !cfg.UseVastFixture {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		go collector.Run(ctx, vastClient, cfg.SnapshotDir, ticker.C)
+	}
 
 	go func() {
 		slog.Info("api listening", "addr", srv.Addr)
