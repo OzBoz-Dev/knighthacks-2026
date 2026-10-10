@@ -22,9 +22,9 @@ func Explain(recs []contract.Recommendation, eligible []contract.Offer, req cont
 	}
 	for i := range recs {
 		o := recs[i].Offer
-		vram := gb(vramOf(o)) + " GB VRAM."
+		vram := gb(vramOf(o)) + " GB VRAM per GPU."
 		if req.MinVRAMGB > 0 {
-			vram = fmt.Sprintf("%s GB VRAM meets your %s GB requirement.", gb(vramOf(o)), gb(req.MinVRAMGB))
+			vram = fmt.Sprintf("%s GB VRAM per GPU meets your %s GB requirement.", gb(vramOf(o)), gb(req.MinVRAMGB))
 		}
 		ex := []string{vram}
 		if m, ok := medians[o.GPUName]; ok && m > 0 {
@@ -80,7 +80,7 @@ func Suggest(offers []contract.Offer, req contract.MatchRequest, ex contract.Exc
 		return fmt.Sprintf("%s; try adding the %s.", head, cheapest.GPUName)
 	case "Region":
 		return fmt.Sprintf("%s; try the %s region.", head, cheapest.Region)
-	case "VRAM":
+	case "VRAM per GPU":
 		v := slices.MaxFunc(only, func(a, b contract.Offer) int { return cmp.Compare(vramOf(a), vramOf(b)) })
 		// Round down so the suggested value still lets the offer pass.
 		return fmt.Sprintf("%s; try lowering it to %s GB.", head, gb(math.Floor(vramOf(v)*10+1e-9)/10))
