@@ -153,6 +153,63 @@
   align-items: stretch;
 }
 
+.insights {
+  padding: 11px;
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-rule);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  background: var(--dg-elevated);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.tableFrame {
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-rule);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.offerRow {
+  cursor: pointer;
+}
+
+.offerRow th {
+  font-weight: 600;
+  text-align: left;
+}
+
+.sortHeader {
+  width: 100%;
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.sortHeader:hover {
+  color: var(--mantine-color-lava-3);
+}
+
+.rowAction:focus-visible {
+  outline: 2px solid var(--mantine-color-lava-5);
+  outline-offset: 2px;
+}
+
+.offerRow:focus-within {
+  background: var(--dg-elevated);
+}
+
 .panel {
   min-width: 0;
   min-height: 212px;
@@ -224,7 +281,8 @@
 }
 
 @container explore (max-width: 759px) {
-  .overviewGrid {
+  .overviewGrid,
+  .summaryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

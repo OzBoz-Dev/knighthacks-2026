@@ -4,14 +4,16 @@ import { Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import type { Offer } from "@/lib/api/types";
-import type { DashboardData, OfferFilters as Filters } from "@/lib/explore/types";
-import { buildMarketOverview, DEFAULT_FILTERS, getModelOffers, visibleModelOffers } from "@/lib/explore/selectors";
+import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
 import { ExploreToolbar } from "./explore-toolbar";
 import { MarketHeading } from "./market-hero";
 import { OfferFilters } from "./offer-filters";
 import { GpuOfferGrid } from "./gpu-offer-grid";
 import { OfferDetailsDrawer } from "./offer-details-drawer";
 import { MarketOverview } from "./market-overview";
+import { OfferTable } from "./offer-table";
+import { MarketInsights } from "./market-insights";
 import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
@@ -24,15 +26,20 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
   const reliabilityUnit = data?.reliabilityUnit ?? "ratio";
   const models = useMemo(() => [...new Set(offers.map((o) => o.gpu_name))].sort(), [offers]);
   const regions = useMemo(() => [...new Set(offers.map((o) => o.region))].sort(), [offers]);
+  const [tableSort, setTableSort] = useState<TableSort>({ key: "price", direction: "asc" });
+  const tableOffers = useMemo(() => sortOffers(filterOffers(offers, filters, reliabilityUnit), tableSort), [offers, filters, reliabilityUnit, tableSort]);
   const representatives = useMemo(() => getModelOffers(offers, filters, reliabilityUnit), [offers, filters, reliabilityUnit]);
   const overview = useMemo(() => buildMarketOverview(offers, data?.history ?? []), [offers, data?.history]);
   const visibleCount = visibleModelOffers(representatives, expanded).length;
   const provenance = data?.provenance ?? { source: "unknown" as const, timestamp: null };
-  const changeFilters = (patch: Partial<Filters>) => { setFilters((current) => ({ ...current, ...patch })); setExpanded(false); };
-  const resetFilters = () => { setFilters({ ...DEFAULT_FILTERS }); setExpanded(false); };
+  const [rowLimit, setRowLimit] = useState(TABLE_PAGE_SIZE);
+  const collapse = () => { setExpanded(false); setRowLimit(TABLE_PAGE_SIZE); };
+  const changeFilters = (patch: Partial<Filters>) => { setFilters((current) => ({ ...current, ...patch })); collapse(); };
+  const resetFilters = () => { setFilters({ ...DEFAULT_FILTERS }); collapse(); };
+  const changeTableSort = (sort: TableSort) => { setTableSort(sort); setRowLimit(TABLE_PAGE_SIZE); };
   const jumpToCards = (patch: Partial<Filters>) => {
     setFilters({ ...DEFAULT_FILTERS, ...patch });
-    setExpanded(false);
+    collapse();
     document.getElementById("gpu-models-title")?.focus();
   };
 
@@ -56,11 +63,14 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           reliabilityUnit={reliabilityUnit}
           expanded={expanded}
           hasData={!!data}
+          exclusion={representatives.length ? null : largestExclusion(offers, filters, reliabilityUnit)}
           onToggle={() => setExpanded((value) => !value)}
           onDetails={setSelectedOffer}
           onReset={resetFilters}
         />
       </section>
+      {data && <MarketInsights insights={data.insights} models={models} />}
+      <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
       <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
       <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>
