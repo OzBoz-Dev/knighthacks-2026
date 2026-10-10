@@ -30,6 +30,31 @@ const trendsQuery = "SELECT `timestamp`, minimum_price, median_price, p10_price,
 	"WHERE gpu_name = :gpu_name AND region = :region\n" +
 	"ORDER BY `timestamp` ASC"
 
+// mediansQuery reads the latest summary row of each GPU in one statement, so a page of offers needs one query.
+const mediansQuery = `SELECT gpu_name, median_price
+FROM ` + goldSchema + `.gpu_market_summary
+QUALIFY ROW_NUMBER() OVER (PARTITION BY gpu_name ORDER BY updated_at DESC) = 1`
+
+// Medians maps each gpu_name to its latest median price.
+func Medians(ctx context.Context, q Querier) (map[string]float64, error) {
+	res, err := q.Query(ctx, mediansQuery)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]float64, len(res.Rows))
+	for _, r := range res.Rows {
+		if len(r) != 2 {
+			return nil, fmt.Errorf("median row has %d columns, want 2", len(r))
+		}
+		v, err := strconv.ParseFloat(r[1], 64)
+		if err != nil {
+			return nil, fmt.Errorf("median row: %w", err)
+		}
+		m[r[0]] = v
+	}
+	return m, nil
+}
+
 // Summary returns the latest summary row of the GPU, or nil when the table has none.
 func Summary(ctx context.Context, q Querier, gpuName string) (*contract.MarketSummary, error) {
 	res, err := q.Query(ctx, summaryQuery, Param{"gpu_name", gpuName})

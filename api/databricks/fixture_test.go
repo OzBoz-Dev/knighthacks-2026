@@ -27,6 +27,9 @@ func TestLoadExport(t *testing.T) {
 	if s := e.Summary("RTX 4090"); s == nil || s.ListingCount != 212 {
 		t.Fatalf("summary = %v", s)
 	}
+	if m := e.Medians(); len(m) != 1 || m["RTX 4090"] != 0.48 {
+		t.Fatalf("medians = %v", m)
+	}
 	if e.Summary("rtx 4090") != nil || e.Summary("A100") != nil {
 		t.Fatal("unknown GPU must give nil")
 	}

@@ -56,6 +56,15 @@ func (e *Export) Summary(gpuName string) *contract.MarketSummary {
 	return nil
 }
 
+// Medians maps each gpu_name of the export to its median price.
+func (e *Export) Medians() map[string]float64 {
+	m := make(map[string]float64, len(e.Summaries))
+	for _, s := range e.Summaries {
+		m[s.GPUName] = s.MedianPrice
+	}
+	return m
+}
+
 // TrendPoints returns the points of the GPU in time order. An empty region means the rows with region "ALL".
 func (e *Export) TrendPoints(gpuName, region string) []contract.TrendPoint {
 	if region == "" {

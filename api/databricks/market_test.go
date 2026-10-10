@@ -40,6 +40,20 @@ func TestSummary(t *testing.T) {
 	}
 }
 
+func TestMedians(t *testing.T) {
+	q := &rowsQuerier{rows: [][]string{{"RTX 4090", "0.48"}, {"A100 PCIE", "1.2"}}}
+	m, err := Medians(context.Background(), q)
+	if err != nil || len(m) != 2 || m["RTX 4090"] != 0.48 || m["A100 PCIE"] != 1.2 || len(q.params) != 0 {
+		t.Fatalf("medians %v err %v params %v", m, err, q.params)
+	}
+	for _, rows := range [][][]string{{{"RTX 4090"}}, {{"RTX 4090", "x"}}} {
+		q.rows = rows
+		if _, err := Medians(context.Background(), q); err == nil {
+			t.Fatalf("want error for rows %v", rows)
+		}
+	}
+}
+
 func TestTrends(t *testing.T) {
 	q := &rowsQuerier{rows: [][]string{
 		{"2026-10-10 16:40:00", "0.3", "0.49", "0.33", "0.7", "204"},
