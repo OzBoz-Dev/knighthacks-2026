@@ -64,9 +64,9 @@ func MarkConfirmed(db *sql.DB, id, signature string, slot uint64) error {
 	return mark(db, id, contract.StatusConfirmed, signature, slot)
 }
 
-// MarkFailed sets the status to failed.
-func MarkFailed(db *sql.DB, id string) error {
-	return mark(db, id, contract.StatusFailed, nil, nil)
+// MarkFailed sets the status to failed and stores the rejected signature, so the card can link to it.
+func MarkFailed(db *sql.DB, id, signature string) error {
+	return mark(db, id, contract.StatusFailed, signature, nil)
 }
 
 func mark(db *sql.DB, id string, status contract.ReservationStatus, signature, slot any) error {

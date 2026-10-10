@@ -70,8 +70,32 @@ func TestCacheDrops(t *testing.T) {
 }
 
 func TestCacheNoDataYet(t *testing.T) {
-	c := NewCache(&fakeFetcher{fail: true}, time.Minute, time.Now)
-	if _, err := c.Get(context.Background()); err == nil {
-		t.Fatal("want an error")
+	clock := time.Date(2026, 10, 10, 20, 0, 0, 0, time.UTC)
+	f := &fakeFetcher{fail: true, at: clock}
+	c := NewCache(f, time.Minute, func() time.Time { return clock })
+	for range 3 {
+		if _, err := c.Get(context.Background()); err == nil {
+			t.Fatal("want an error")
+		}
+	}
+	if f.calls != 1 {
+		t.Fatalf("calls = %d, want 1 inside the TTL", f.calls)
+	}
+	clock = clock.Add(time.Minute)
+	f.fail = false
+	if snap, err := c.Get(context.Background()); err != nil || len(snap.Offers) != 1 || f.calls != 2 {
+		t.Fatalf("after the TTL: %v %+v, %d calls", err, snap, f.calls)
+	}
+}
+
+func TestCacheCancelledRequestRetries(t *testing.T) {
+	f := &fakeFetcher{fail: true}
+	c := NewCache(f, time.Minute, time.Now)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c.Get(ctx)
+	c.Get(context.Background())
+	if f.calls != 2 {
+		t.Fatalf("calls = %d, want 2", f.calls)
 	}
 }

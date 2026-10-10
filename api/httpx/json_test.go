@@ -25,3 +25,18 @@ func TestWriteErrorShape(t *testing.T) {
 		t.Fatalf("body = %s", rec.Body)
 	}
 }
+
+func TestNotFoundRoute(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", NotFound)
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	for path, want := range map[string]int{"/api/nope": http.StatusNotFound, "/": http.StatusNotFound, "/api/health": http.StatusOK} {
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		var body ErrorBody
+		json.Unmarshal(rec.Body.Bytes(), &body)
+		if rec.Code != want || (want == http.StatusNotFound && body.Error.Code != CodeNotFound) {
+			t.Errorf("%s: status %d body %s", path, rec.Code, rec.Body)
+		}
+	}
+}

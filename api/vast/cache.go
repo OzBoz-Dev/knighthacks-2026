@@ -43,6 +43,8 @@ type Cache struct {
 	fetchedAt time.Time
 }
 
+var errNoData = errors.New("no vast data")
+
 func NewCache(f Fetcher, ttl time.Duration, now func() time.Time) *Cache {
 	return &Cache{fetcher: f, ttl: ttl, now: now}
 }
@@ -50,16 +52,23 @@ func NewCache(f Fetcher, ttl time.Duration, now func() time.Time) *Cache {
 func (c *Cache) Get(ctx context.Context) (Snapshot, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.have && c.now().Sub(c.fetchedAt) < c.ttl {
+	// A failed refresh also waits one TTL, so a down Vast.ai gets one call per TTL, not one per request.
+	if c.now().Sub(c.fetchedAt) < c.ttl {
+		if !c.have {
+			return Snapshot{}, errNoData
+		}
 		return c.last, nil
 	}
 	res, err := c.fetcher.Fetch(ctx)
 	if err != nil {
 		slog.Warn("vast refresh failed", "err", err)
-		if !c.have {
-			return Snapshot{}, errors.New("no vast data")
+		if ctx.Err() == nil { // a request that the client cancelled says nothing about Vast.ai
+			c.fetchedAt = c.now()
 		}
-		c.last.Saved, c.fetchedAt = true, c.now() // retry once per TTL, not once per request
+		if !c.have {
+			return Snapshot{}, errNoData
+		}
+		c.last.Saved = true
 		return c.last, nil
 	}
 	offers, drops := Normalize(res.Offers)

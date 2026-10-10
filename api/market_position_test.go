@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -54,31 +55,63 @@ func TestMedianSourceFallback(t *testing.T) {
 	export := &databricks.Export{Summaries: []contract.MarketSummary{{GPUName: "RTX 4090", MedianPrice: 0.4}}}
 	ctx := context.Background()
 	live := medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}}
-	if m := (medianSource{live: live, export: export}).get(ctx); m["RTX 4090"] != 0.48 {
+	if m := (&medianSource{live: live, export: export}).get(ctx); m["RTX 4090"] != 0.48 {
 		t.Fatalf("live: %v", m)
 	}
 	down := medianQuerier{err: errors.New("warehouse down")}
-	if m := (medianSource{live: down, export: export}).get(ctx); m["RTX 4090"] != 0.4 {
+	if m := (&medianSource{live: down, export: export}).get(ctx); m["RTX 4090"] != 0.4 {
 		t.Fatalf("export: %v", m)
 	}
-	if m := (medianSource{live: down}).get(ctx); m != nil {
+	if m := (&medianSource{live: down}).get(ctx); m != nil {
 		t.Fatalf("none: %v", m)
 	}
 }
 
 func TestSlowMediansFillTheCache(t *testing.T) {
-	cache := databricks.NewCache(medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}, delay: mediansTimeout + 200*time.Millisecond}, time.Now)
-	m := medianSource{live: cache}
-	start := time.Now()
+	old := mediansTimeout
+	mediansTimeout = 20 * time.Millisecond
+	t.Cleanup(func() { mediansTimeout = old })
+	cache := databricks.NewCache(medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}, delay: 100 * time.Millisecond}, time.Now)
+	m := &medianSource{live: cache}
 	if med := m.get(context.Background()); med != nil {
 		t.Fatalf("a slow warehouse must give nil, got %v", med)
 	}
-	if d := time.Since(start); d > mediansTimeout+100*time.Millisecond {
-		t.Fatalf("get waited %v", d)
+	// The late success ends the failure memory, and the next read comes from the cache.
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(10 * time.Millisecond) {
+		if m.failedAt.Load() == 0 {
+			break
+		}
 	}
-	time.Sleep(400 * time.Millisecond)
+	mediansTimeout = time.Minute
 	if med := m.get(context.Background()); med["RTX 4090"] != 0.48 {
 		t.Fatalf("the late result must fill the cache, got %v", med)
+	}
+}
+
+// countingQuerier fails and counts the calls.
+type countingQuerier struct{ calls atomic.Int32 }
+
+func (q *countingQuerier) Query(context.Context, string, ...databricks.Param) (databricks.Result, error) {
+	q.calls.Add(1)
+	return databricks.Result{}, errors.New("warehouse down")
+}
+
+func TestMedianFailureMemory(t *testing.T) {
+	q := &countingQuerier{}
+	export := &databricks.Export{Summaries: []contract.MarketSummary{{GPUName: "RTX 4090", MedianPrice: 0.4}}}
+	m := &medianSource{live: q, export: export}
+	for range 3 {
+		if med := m.get(context.Background()); med["RTX 4090"] != 0.4 {
+			t.Fatalf("want the export, got %v", med)
+		}
+	}
+	if m.status(context.Background()) != statusUnavailable || q.calls.Load() != 1 {
+		t.Fatalf("calls = %d, want 1 inside the failure memory", q.calls.Load())
+	}
+	m.failedAt.Store(time.Now().Add(-failureMemory).UnixNano())
+	m.get(context.Background())
+	if q.calls.Load() != 2 {
+		t.Fatalf("calls = %d, want a new call after the failure memory", q.calls.Load())
 	}
 }
 
@@ -86,11 +119,11 @@ func TestOffersIncludeMarketPosition(t *testing.T) {
 	snap := vast.Snapshot{CapturedAt: time.Date(2026, 10, 10, 20, 0, 0, 0, time.UTC),
 		Offers: []contract.Offer{{ID: "1", GPUName: "RTX 4090", PricePerHour: 0.42}}}
 	for name, tc := range map[string]struct {
-		m    medianSource
+		m    *medianSource
 		want *float64
 	}{
-		"live median":       {medianSource{live: medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}}}, ptr(-12.5)},
-		"databricks failed": {medianSource{live: medianQuerier{err: errors.New("warehouse down")}}, nil},
+		"live median":       {&medianSource{live: medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}}}, ptr(-12.5)},
+		"databricks failed": {&medianSource{live: medianQuerier{err: errors.New("warehouse down")}}, nil},
 	} {
 		rec := httptest.NewRecorder()
 		offersHandler(stubSource{snap: snap}, tc.m.get).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/offers", nil))
