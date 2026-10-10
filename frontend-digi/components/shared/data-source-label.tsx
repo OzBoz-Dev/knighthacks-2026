@@ -2,8 +2,8 @@ import { Badge } from "@mantine/core";
 import { describeProvenance, type Provenance, type ProvenanceKind } from "@/lib/data/provenance";
 
 const COLOR: Record<ProvenanceKind, string> = {
-  live: "teal",
-  saved: "cyan",
+  live: "green",
+  saved: "signal",
   sample: "gray",
   unavailable: "gray",
   unknown: "gray",
@@ -14,7 +14,8 @@ export function DataSourceLabel({ provenance, compact = false }: { provenance: P
   return (
     <Badge
       color={COLOR[kind]}
-      size={compact ? "sm" : "lg"}
+      variant="outline"
+      size={compact ? "md" : "lg"}
       tt="none"
       fw={500}
       data-provenance={kind}

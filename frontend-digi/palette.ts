@@ -1,10 +1,10 @@
 export const palette = {
-  background: "#080A0C",
-  sidebar: "#0C0F12",
-  surface: "#11161A",
-  elevated: "#182026",
-  border: "#263039",
-  text: "#F0F4F6",
-  muted: "#9AA9B2",
-  accent: "#22D3EE",
+  background: "#171816",
+  sidebar: "#111310",
+  surface: "#1E211D",
+  elevated: "#272B25",
+  border: "#3B4037",
+  text: "#E9E8DF",
+  muted: "#B1B3A8",
+  accent: "#D97745",
 } as const;

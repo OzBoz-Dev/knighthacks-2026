@@ -24,13 +24,22 @@ body {
   z-index: 1000;
   padding: 0.5rem 1rem;
   border-radius: var(--mantine-radius-md);
-  background: var(--mantine-color-cyan-4);
+  background: var(--mantine-color-signal-4);
   color: var(--mantine-color-black);
   font-weight: 600;
 }
 
 .skip-link:focus {
   top: 0.75rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mantine-color-signal-4);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {

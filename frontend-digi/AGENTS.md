@@ -35,30 +35,33 @@ Run commands from `frontend-digi/` using npm and the existing `package-lock.json
 | `npm run start` | Serve an existing production build |
 
 - Use command exit statuses directly; do not hide failures with output-filtering pipelines.
-- Verification for the sidebar-dashboard draft: lint, typecheck, 42 tests, and production builds passed. HTTP smoke checks passed for all three routes, local illustration assets, and four initial development cards. A build/start with the fixture flag set still omitted sample data in production.
+- Verification for the Hardware Lab draft: lint, typecheck, 42 tests, and a production build (with the fixture flag set) passed. HTTP smoke checks and a browser visual review of this redesign have not been run yet; the earlier sidebar draft's smoke checks confirmed production omits sample data.
 - Browser interaction, responsive layout, chart rendering, keyboard focus, and hydration require a real browser check; server-rendered HTML checks do not establish visual correctness.
 - The current audit reports five high-severity findings in the existing ESLint dependency chain (`braces` → `micromatch` → `fast-glob` → Next ESLint). Do not run `npm audit fix --force`, downgrade Next.js, or weaken install-script/security controls to suppress them.
 
 ### UI and architecture
 
 - Prefer Mantine primitives, not custom replacements for controls, navigation, drawers, or modals. Current dependencies are Mantine core/hooks/charts 9.6.3, Recharts 3.10.1, and Tabler React icons 3.48.0. Keep Mantine package versions aligned.
-- The design is forced dark with clean black/charcoal surfaces, cyan accents, subtle borders, and Geist typography. Use semantic teal/red for price changes; do not rely on color alone.
+- Visual direction is **Hardware Lab**: forced dark, warm graphite surfaces (`#171816` canvas, `#1E211D` panels), ivory text (`#E9E8DF`), warm-gray secondary text, fine `#3B4037` rules, 2–6px radii, and a restrained signal-orange accent (`#D97745`, Mantine color `signal`, primary). Orange is for active nav, focus, primary actions, and the main chart series only — not every icon or border.
+- No decorative maps, gradients, glows, scanlines, fake serial numbers, or repeated product imagery. Hierarchy comes from typography: page title ~32px, GPU model ~21px, price ~30px monospace, supporting text 13–15px. Avoid essential copy below 12px. Numbers use Geist Mono and the global `.tabular` class.
+- Semantic price-change colors are muted green (down) / red (up) with signed text and arrows; never rely on color alone. Custom CSS uses the `--dg-surface`, `--dg-elevated`, `--dg-rule`, `--dg-accent` variables defined in `theme.ts`.
 - `palette.ts` contains server-safe raw colors. `theme.ts` constructs the Mantine theme; do not import its client-dependent theme construction into server layouts.
 - `app/layout.tsx` stays a Server Component for fonts, metadata, and dark HTML setup. `app/providers.tsx` supplies the client Mantine provider. Preserve matching forced-dark settings to avoid flashes/hydration differences.
 - `components/layout/app-shell.tsx` owns the shared left sidebar, URL-based active links, narrow-width navigation control, and one main-content landmark. Preserve the skip link and accessible navigation.
 - `app/page.tsx` loads gated fixtures on the server and passes serializable data to `components/explore/explore-dashboard.tsx`. Explore owns its toolbar and local filter/expansion/drawer state; do not put this state in the shared shell.
-- `components/explore/` contains the toolbar, map hero, filters, model cards, details drawer, and four overview panels. `explore.module.css` handles limited composition/responsive styling; Mantine handles the controls.
+- `components/explore/` page order: `MarketHeading` (in `market-hero.tsx`; title, source label, sample window) → toolbar (search plus a right-aligned index readout + secondary Phantom preview button in one non-wrapping group) → labeled filters → "Featured hardware" specification cards → "Market context" (wide price-history chart beside regional quotes, then availability and quote-change ruled lists) → offer-record Drawer. `explore.module.css` handles composition/responsive styling; Mantine handles the controls.
+- GPU cards are typography-led spec sheets (provider, model, VRAM per GPU, hourly quote, ruled spec rows, "Inspect offer"). The Drawer is an "Offer record" with grouped label/value sections; it must not imitate a reservation receipt or verification result until those features exist.
 - `components/shared/` contains reusable loading/empty/error states, provenance badges, and timestamps. The older `components/development/sample-market-preview.tsx` is no longer used by Explore.
 - Mantine compound components such as `Table.Thead` and `AppShell.Navbar` require a client boundary. For a component without polymorphic link props, use its `renderRoot` API rather than forcing an unsupported `href` prop.
 - `app/globals.css` declares `@layer theme, base, mantine, components, utilities;`. Import core's `styles.layer.css` before charts' `styles.layer.css`; never also import their unlayered `styles.css`. Preserve reduced-motion and focus behavior.
-- The local SVGs in `public/illustrations/` are generic illustrations, not GPU product photography or real host locations. Do not add remote map/image dependencies just to replace them.
+- The SVGs in `public/illustrations/` are no longer rendered. They are generic illustrations, not product photography or real host locations; do not reintroduce them or add remote map/image dependencies.
 
 ### Explore behavior
 
 - `lib/explore/types.ts` defines frontend-only dashboard types; `lib/explore/selectors.ts` contains pure filtering, representative selection, sorting, and preview metrics.
 - Search is case-insensitive across GPU model and region. Filters include model, minimum total VRAM, region, maximum hourly price, minimum reliability, and verified-only. Vast.ai is the sole provider, not an interactive multi-provider choice.
 - Select the cheapest eligible offer for each distinct model after filtering; break equal-price ties by offer ID. Sorting then applies to those representatives, not every listing in the market.
-- Default Featured order starts with H100 SXM, A100 PCIe, RTX 4090, and L40S. Popular/Featured means curated presentation, not measured demand.
+- Default Featured order starts with H100 SXM, A100 PCIe, RTX 4090, and L40S. "Featured hardware" means curated presentation, not measured demand; do not label cards "Popular".
 - Show four model cards initially. Expand reveals all matching models; collapse returns to four. Filter changes reset expansion. Offer details open in a Drawer, not a fourth product route.
 - Filters affect cards only. The Global GPU Index and Market Overview remain scoped to the full preview market. Model/region overview shortcuts replace card filters and return focus to the card-section heading.
 - Multi-GPU prices are whole-offer hourly quotes. Keep per-GPU VRAM and total VRAM distinct.

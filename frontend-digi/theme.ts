@@ -7,10 +7,10 @@ import { palette } from "./palette";
 
 const dark: MantineColorsTuple = [
   palette.text,
-  "#CAD3D8",
+  "#D2D2C8",
   palette.muted,
-  "#76858E",
-  "#35434C",
+  "#8C8F84",
+  "#4A5045",
   palette.border,
   palette.elevated,
   palette.surface,
@@ -18,26 +18,26 @@ const dark: MantineColorsTuple = [
   palette.background,
 ];
 
-const cyan: MantineColorsTuple = [
-  "#ECFEFF",
-  "#CFFAFE",
-  "#A5F3FC",
-  "#67E8F9",
+const signal: MantineColorsTuple = [
+  "#FCEFE7",
+  "#F6D8C6",
+  "#EEB89A",
+  "#E6996F",
   palette.accent,
-  "#06B6D4",
-  "#0891B2",
-  "#0E7490",
-  "#155E75",
-  "#164E63",
+  "#C8642F",
+  "#A85226",
+  "#86411F",
+  "#653118",
+  "#452110",
 ];
 
 export const theme = createTheme({
-  colors: { dark, cyan },
-  primaryColor: "cyan",
+  colors: { dark, signal },
+  primaryColor: "signal",
   primaryShade: { light: 6, dark: 4 },
   autoContrast: true,
-  luminanceThreshold: 0.3,
-  black: "#061014",
+  luminanceThreshold: 0.2,
+  black: "#141511",
   white: "#FFFFFF",
   fontFamily:
     "var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
@@ -48,19 +48,26 @@ export const theme = createTheme({
       "var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
     fontWeight: "600",
   },
-  defaultRadius: "md",
-  radius: { sm: "6px", md: "8px", lg: "10px" },
+  defaultRadius: "sm",
+  radius: { xs: "2px", sm: "4px", md: "6px", lg: "8px" },
   cursorType: "pointer",
   components: {
-    Paper: { defaultProps: { bg: "dark.7", withBorder: true } },
-    Card: { defaultProps: { bg: "dark.7", withBorder: true } },
-    Badge: { defaultProps: { variant: "light", radius: "sm" } },
-    Alert: { defaultProps: { variant: "light" } },
+    Paper: { defaultProps: { bg: "dark.7", withBorder: true, radius: "sm" } },
+    Card: { defaultProps: { bg: "dark.7", withBorder: true, radius: "sm" } },
+    Badge: { defaultProps: { variant: "light", radius: "xs" } },
+    Alert: { defaultProps: { variant: "light", radius: "sm" } },
+    Modal: { defaultProps: { radius: "sm" } },
+    Popover: { defaultProps: { radius: "sm" } },
   },
 });
 
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
-  variables: {},
+  variables: {
+    "--dg-surface": palette.surface,
+    "--dg-elevated": palette.elevated,
+    "--dg-rule": palette.border,
+    "--dg-accent": palette.accent,
+  },
   light: {},
   dark: {
     "--mantine-color-body": palette.background,

@@ -1,15 +1,14 @@
 "use client";
 
-import { Badge, Button, Divider, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
-import { IconArrowDown, IconArrowUp, IconFlask, IconInfoCircle } from "@tabler/icons-react";
+import { Button, Group, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { IconArrowDown, IconArrowUp, IconInfoCircle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters } from "@/lib/explore/types";
 import { buildMarketOverview, DEFAULT_FILTERS, getModelOffers, visibleModelOffers } from "@/lib/explore/selectors";
 import { EmptyState } from "@/components/shared/async-state";
-import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { ExploreToolbar } from "./explore-toolbar";
-import { MarketHero } from "./market-hero";
+import { MarketHeading } from "./market-hero";
 import { OfferFilters } from "./offer-filters";
 import { GpuOfferCard } from "./gpu-offer-card";
 import { OfferDetailsDrawer } from "./offer-details-drawer";
@@ -39,32 +38,41 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
   };
 
   return (
-    <Stack gap="md">
-      <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={!!data} />
-      {data ? <div className={styles.sampleNotice} role="note"><IconFlask size={13} aria-hidden /><DataSourceLabel provenance={provenance} compact /><Text fz={10} c="dimmed">Interactive preview · No real bookings</Text></div> : <Text size="xs" c="dimmed">Market data is not connected. The dashboard is ready for integration.</Text>}
-      <MarketHero />
-      <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
+    <Stack gap={28}>
+      <MarketHeading provenance={provenance} sample={!!data} start={overview.start} end={overview.end} />
+      <Stack gap="md">
+        <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={!!data} />
+        <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
+      </Stack>
       <section aria-labelledby="gpu-models-title">
-        <Group justify="space-between" mb="sm" gap="sm">
-          <Group gap="xs">
-            <Title order={2} id="gpu-models-title" tabIndex={-1} fz={15}>{filters.sort === "featured" ? "Popular models" : "GPU models"}</Title>
-            <Tooltip label="Curated preview models. Each card shows the lowest-priced eligible offer for that model; popularity is not measured demand."><IconInfoCircle size={13} color="var(--mantine-color-dimmed)" tabIndex={0} aria-label="About model selection" /></Tooltip>
-            {data && <Badge color="gray" variant="light" size="xs" tt="none">Curated</Badge>}
+        <Group justify="space-between" align="baseline" mb="md" gap="sm">
+          <Group gap="xs" align="center">
+            <Title order={2} id="gpu-models-title" tabIndex={-1} fz={20} fw={600}>{filters.sort === "featured" ? "Featured hardware" : "Hardware"}</Title>
+            <Tooltip label="Curated preview order. Each card shows the lowest-priced eligible offer for that model; it does not measure demand.">
+              <IconInfoCircle size={15} color="var(--mantine-color-dimmed)" tabIndex={0} aria-label="About model selection" />
+            </Tooltip>
           </Group>
-          <Group gap="sm">
-            {data && <Text fz={10} c="dimmed" role="status" aria-live="polite">{visible.length} of {representatives.length} models</Text>}
-            {representatives.length > 4 && <Button size="compact-xs" variant="subtle" rightSection={expanded ? <IconArrowUp size={13} /> : <IconArrowDown size={13} />} aria-expanded={expanded} aria-controls="gpu-offer-grid" onClick={() => setExpanded((value) => !value)}>{expanded ? "Show fewer" : "Explore all models"}</Button>}
+          <Group gap="md">
+            {data && <Text fz={13} c="dimmed" role="status" aria-live="polite">{visible.length} of {representatives.length} models</Text>}
+            {representatives.length > 4 && (
+              <Button size="sm" variant="subtle" rightSection={expanded ? <IconArrowUp size={14} /> : <IconArrowDown size={14} />} aria-expanded={expanded} aria-controls="gpu-offer-grid" onClick={() => setExpanded((value) => !value)}>
+                {expanded ? "Show fewer" : "View all models"}
+              </Button>
+            )}
           </Group>
         </Group>
-        {visible.length ? <div className={styles.offerGrid} id="gpu-offer-grid">
-          {visible.map((offer) => <GpuOfferCard key={offer.id} offer={offer} reliabilityUnit={reliabilityUnit} onDetails={() => setSelectedOffer(offer)} />)}
-        </div> : <EmptyState
-          title={data ? "No models match your filters" : "Inventory is not connected yet"}
-          description={data ? "Try removing a filter or increasing your budget to explore more models." : "Enable development fixtures to explore the interactive sample dashboard, or connect real inventory in a future integration."}
-          action={data ? <Button variant="light" size="xs" onClick={resetFilters}>Reset filters</Button> : undefined}
-        />}
+        {visible.length ? (
+          <div className={styles.offerGrid} id="gpu-offer-grid">
+            {visible.map((offer) => <GpuOfferCard key={offer.id} offer={offer} reliabilityUnit={reliabilityUnit} onDetails={() => setSelectedOffer(offer)} />)}
+          </div>
+        ) : (
+          <EmptyState
+            title={data ? "No models match your filters" : "Inventory is not connected yet"}
+            description={data ? "Try removing a filter or increasing your budget to see more models." : "Enable development fixtures to explore the interactive sample dashboard, or connect real inventory in a future integration."}
+            action={data ? <Button variant="default" size="sm" onClick={resetFilters}>Reset filters</Button> : undefined}
+          />
+        )}
       </section>
-      <Divider color="dark.5" />
       <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
       <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>

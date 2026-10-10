@@ -1,8 +1,8 @@
 "use client";
 
-import { AppShell, Box, Burger, Container, Group, NavLink, Paper, Stack, Text, ThemeIcon } from "@mantine/core";
+import { AppShell, Box, Burger, Container, Group, NavLink, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCompass, IconLayersIntersect, IconReceipt, IconTarget, IconWallet } from "@tabler/icons-react";
+import { IconCompass, IconReceipt, IconTarget } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -28,53 +28,48 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
       padding={0}
     >
       <a href="#main-content" className="skip-link">Skip to content</a>
-      <AppShell.Navbar bg="dark.8" p="sm" aria-label="Sidebar">
-        <AppShell.Section p="xs" pt="md" pb={32}>
+      <AppShell.Navbar bg="dark.8" p="md" aria-label="Sidebar">
+        <AppShell.Section pt="xs" pb={36}>
           <Burger hiddenFrom="sm" opened={opened} onClick={close} size="sm" mb="md" aria-label="Close navigation" />
           <Group renderRoot={(props) => <Link {...props} href="/" onClick={close} />} gap={10} wrap="nowrap" style={{ textDecoration: "none" }}>
-            <ThemeIcon variant="light" size={36} radius="md">
-              <IconLayersIntersect size={25} stroke={1.7} aria-hidden />
-            </ThemeIcon>
-            <Box>
-              <Text fw={700} fz={21} c="dark.0" lh={1.2} style={{ letterSpacing: "-0.6px" }}>
-                digi<Box component="span" c="cyan.4">GPU</Box>
-              </Text>
-              <Text c="dimmed" fz={10} mt={4}>GPU marketplace explorer</Text>
-            </Box>
+            <Box w={4} h={26} bg="signal.4" aria-hidden />
+            <Text fw={650} fz={20} c="dark.0" lh={1} style={{ letterSpacing: "-0.4px" }}>digiGPU</Text>
           </Group>
         </AppShell.Section>
         <AppShell.Section grow component="nav" aria-label="Primary">
-          <Text c="dimmed" fz={10} fw={600} tt="uppercase" px="sm" mb="sm" style={{ letterSpacing: "1.5px" }}>
-            Workspace
-          </Text>
-          <Stack gap={6}>
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-              <NavLink
-                key={href}
-                component={Link}
-                href={href}
-                label={label}
-                leftSection={<Icon size={18} stroke={1.6} aria-hidden />}
-                active={isActive(pathname, href)}
-                aria-current={isActive(pathname, href) ? "page" : undefined}
-                onClick={close}
-                py={12}
-                styles={{ root: { borderRadius: 7 }, label: { fontSize: 13, fontWeight: 500 } }}
-              />
-            ))}
+          <Stack gap={2}>
+            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+              const active = isActive(pathname, href);
+              return (
+                <NavLink
+                  key={href}
+                  component={Link}
+                  href={href}
+                  label={label}
+                  leftSection={<Icon size={17} stroke={1.6} aria-hidden />}
+                  active={active}
+                  aria-current={active ? "page" : undefined}
+                  onClick={close}
+                  color="gray"
+                  variant="subtle"
+                  py={10}
+                  styles={{
+                    root: {
+                      borderRadius: 2,
+                      borderLeft: `2px solid ${active ? "var(--mantine-color-signal-4)" : "transparent"}`,
+                      background: active ? "var(--dg-elevated)" : undefined,
+                      color: active ? "var(--mantine-color-dark-0)" : "var(--mantine-color-dark-1)",
+                    },
+                    label: { fontSize: 14, fontWeight: active ? 600 : 450 },
+                  }}
+                />
+              );
+            })}
           </Stack>
         </AppShell.Section>
-        <AppShell.Section>
-          <Paper p="sm" radius="md" bg="dark.9">
-            <Group gap={9} wrap="nowrap">
-              <ThemeIcon size={28} color="cyan" variant="light" radius="xl"><IconWallet size={15} aria-hidden /></ThemeIcon>
-              <Box>
-                <Text fz={11} fw={600}>Solana devnet</Text>
-                <Text fz={10} c="dimmed" mt={3}>Test network · No real payments</Text>
-              </Box>
-            </Group>
-          </Paper>
-          <Text c="dimmed" fz={10} px={4} pt="sm">Compare. Choose. Keep the receipt.</Text>
+        <AppShell.Section pt="md" style={{ borderTop: "1px solid var(--dg-rule)" }}>
+          <Text fz={12} fw={600}>Solana devnet</Text>
+          <Text fz={12} c="dimmed" mt={4}>Test network · No real payments</Text>
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main id="main-content" tabIndex={-1}>
@@ -82,7 +77,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
           <Burger opened={opened} onClick={toggle} size="sm" aria-label={opened ? "Close navigation" : "Open navigation"} aria-expanded={opened} />
           <Text fw={600}>digiGPU</Text>
         </Group>
-        <Container size={1600} px={{ base: "md", lg: "lg" }} py="md">
+        <Container size={1600} px={{ base: "md", lg: 40 }} py={{ base: "md", lg: 32 }}>
           {children}
         </Container>
       </AppShell.Main>

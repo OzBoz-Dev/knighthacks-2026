@@ -1,18 +1,30 @@
 "use client";
 
 import { AreaChart } from "@mantine/charts";
-import { Badge, Box, Group, Paper, Progress, Stack, Table, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Box, Group, Progress, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { IconArrowDownRight, IconArrowUpRight, IconInfoCircle, IconMinus } from "@tabler/icons-react";
-import { formatSignedPercent, formatTimestamp, formatUsd, formatUsdPerHour } from "@/lib/format";
+import type { ReactNode } from "react";
+import { formatSignedPercent, formatUsd, formatUsdPerHour } from "@/lib/format";
 import type { MarketOverviewData } from "@/lib/explore/types";
 import styles from "./explore.module.css";
 
-function PanelHeading({ title, subtitle }: { title: string; subtitle: string }) {
-  return <Box mb="md"><Title order={3} fz={12} fw={600}>{title}</Title><Text c="dimmed" fz={10} mt={4}>{subtitle}</Text></Box>;
+function Panel({ title, subtitle, aside, className, children }: { title: string; subtitle: string; aside?: ReactNode; className?: string; children: ReactNode }) {
+  return (
+    <section className={`${styles.panel} ${className ?? ""}`}>
+      <Group justify="space-between" align="flex-start" wrap="nowrap" mb="md">
+        <Box>
+          <Title order={3} fz={15} fw={600}>{title}</Title>
+          <Text c="dimmed" fz={13} mt={2}>{subtitle}</Text>
+        </Box>
+        {aside}
+      </Group>
+      {children}
+    </section>
+  );
 }
 
 function Unavailable() {
-  return <Text c="dimmed" size="xs" py="xl">Market data is not connected yet.</Text>;
+  return <Text c="dimmed" fz={13} py="lg">Market data is not connected yet.</Text>;
 }
 
 export function MarketOverview({ overview, sample, onRegion, onModel }: {
@@ -22,84 +34,106 @@ export function MarketOverview({ overview, sample, onRegion, onModel }: {
   onModel: (model: string) => void;
 }) {
   const maxRegionPrice = Math.max(0, ...overview.regions.map((row) => row.price));
-  const periodLabel = sample ? "Illustrative 24-hour period · UTC" : "No historical data";
-  const periodDetails = overview.start && overview.end ? `${formatTimestamp(overview.start)} — ${formatTimestamp(overview.end)}` : "No market history available";
+  const hasSeries = overview.series.some((point) => point.price !== null);
   return (
     <section aria-labelledby="market-overview-title">
-      <Group justify="space-between" mb="sm" gap="xs">
-        <Group gap="xs"><Title order={2} id="market-overview-title" fz={15}>Market overview</Title>{sample && <Badge size="xs" color="gray" tt="none">Sample market</Badge>}</Group>
-        <Text c="dimmed" fz={10}>Whole preview market · Filters apply to cards only</Text>
+      <Group justify="space-between" align="baseline" mb="md" gap="xs">
+        <Title order={2} id="market-overview-title" fz={20} fw={600}>Market context</Title>
+        <Text c="dimmed" fz={13}>{sample ? "Whole sample market · Filters apply to offers only" : "Whole market · Filters apply to offers only"}</Text>
       </Group>
-      <div className={styles.overviewGrid}>
-        <Paper p="sm" className={styles.overviewCard}>
-          <Group justify="space-between" align="flex-start" wrap="nowrap">
-            <PanelHeading title="Average GPU price" subtitle={sample ? "Sample 24h · Fixed single-GPU basket" : "Fixed single-GPU basket"} />
-            <Tooltip label="Equal-weight mean of model-median single-GPU hourly quotes. Same series as the global index."><IconInfoCircle size={13} color="var(--mantine-color-dimmed)" aria-label="Index methodology" tabIndex={0} /></Tooltip>
-          </Group>
-          {overview.series.some((point) => point.price !== null) ? <>
-            <Text fz={19} fw={600} ff="monospace" mb="sm">{formatUsdPerHour(overview.index)}</Text>
+      <div className={styles.analyticsTop}>
+        <Panel
+          title="Price history"
+          subtitle={sample ? "GPU index · illustrative 24-hour sample · UTC" : "GPU index · fixed single-GPU basket"}
+          aside={hasSeries ? (
+            <Group gap={6} wrap="nowrap">
+              <Text fz={20} fw={600} ff="monospace" className="tabular">{formatUsdPerHour(overview.index)}</Text>
+              <Tooltip label="Equal-weight mean of model-median single-GPU hourly quotes for a fixed model basket.">
+                <IconInfoCircle size={15} color="var(--mantine-color-dimmed)" aria-label="Index methodology" tabIndex={0} />
+              </Tooltip>
+            </Group>
+          ) : undefined}
+        >
+          {hasSeries ? (
             <AreaChart
-              h={142}
-              data={overview.series.map((point) => ({ ...point, time: `${point.timestamp.slice(11, 16)}` }))}
+              h={260}
+              data={overview.series.map((point) => ({ ...point, time: point.timestamp.slice(11, 16) }))}
               dataKey="time"
-              series={[{ name: "price", label: "Sample index", color: "cyan.4" }]}
+              series={[{ name: "price", label: sample ? "Sample index" : "Index", color: "signal.4" }]}
               curveType="linear"
               withDots={false}
-              withGradient
-              fillOpacity={0.12}
+              withGradient={false}
+              fillOpacity={0.08}
               strokeWidth={2}
               connectNulls={false}
               gridAxis="y"
+              strokeDasharray="2 4"
               tickLine="none"
               valueFormatter={formatUsd}
-              yAxisProps={{ width: 40, tickCount: 4, domain: [0, "auto"] }}
-              xAxisProps={{ minTickGap: 25, tickMargin: 8 }}
+              yAxisProps={{ width: 52, tickCount: 5, domain: [0, "auto"] }}
+              xAxisProps={{ minTickGap: 32, tickMargin: 10 }}
               areaProps={{ isAnimationActive: false }}
               areaChartProps={{ accessibilityLayer: true }}
-              style={{ fontSize: 9 }}
+              style={{ fontSize: 12 }}
             />
-          </> : <Unavailable />}
-        </Paper>
-        <Paper p="sm" className={styles.overviewCard}>
-          <PanelHeading title="Price by region" subtitle={`${overview.referenceModel} · 1 GPU · Median / hr`} />
-          {overview.regions.length ? <Stack gap={1}>
-            {overview.regions.map((row) => (
-              <Tooltip key={row.region} label={`Filter cards to ${overview.referenceModel} in ${row.region}`}>
-                <UnstyledButton className={styles.metricRow} onClick={() => onRegion(row.region, overview.referenceModel)}>
-                  <Text fz={10}>{row.region}</Text>
-                  <Progress size={5} radius="xl" value={maxRegionPrice > 0 ? row.price / maxRegionPrice * 100 : 0} aria-label={`${row.region} relative hourly price`} />
-                  <Text fz={10} ff="monospace" ta="right" c="dimmed">{formatUsd(row.price)}/hr</Text>
+          ) : <Unavailable />}
+        </Panel>
+        <Panel title="Regional quotes" subtitle={`${overview.referenceModel} · 1 GPU · median per hour`}>
+          {overview.regions.length ? (
+            <div>
+              {overview.regions.map((row) => (
+                <UnstyledButton key={row.region} className={styles.regionRow} onClick={() => onRegion(row.region, overview.referenceModel)} aria-label={`Show ${overview.referenceModel} offers in ${row.region}`}>
+                  <Group justify="space-between" wrap="nowrap" mb={6}>
+                    <Text fz={14}>{row.region}</Text>
+                    <Text fz={14} ff="monospace" className="tabular">{formatUsd(row.price)}</Text>
+                  </Group>
+                  <Progress size={4} radius={0} color="signal.4" value={maxRegionPrice > 0 ? row.price / maxRegionPrice * 100 : 0} aria-hidden />
                 </UnstyledButton>
-              </Tooltip>
-            ))}
-            <Text c="dimmed" fz={9} mt="sm">Select a region to explore its offers.</Text>
-          </Stack> : <Unavailable />}
-        </Paper>
-        <Paper p="sm" className={styles.overviewCard}>
-          <PanelHeading title="Top models by availability" subtitle="Available listings, not physical GPUs" />
-          {overview.availability.length ? <Table verticalSpacing={6} horizontalSpacing={0} withRowBorders={false}>
-            <Table.Thead><Table.Tr><Table.Th fz={10} fw={400} c="dimmed">Model</Table.Th><Table.Th fz={10} fw={400} c="dimmed" ta="right">Listings</Table.Th></Table.Tr></Table.Thead>
-            <Table.Tbody>{overview.availability.slice(0, 5).map((row) => <Table.Tr key={row.model}>
-              <Table.Td><UnstyledButton onClick={() => onModel(row.model)} className={styles.availabilityRow} style={{ width: "100%", borderRadius: 4 }}><Text fz={11}>{row.model}</Text></UnstyledButton></Table.Td>
-              <Table.Td ta="right"><Text fz={11} ff="monospace" c="dimmed">{row.listings}</Text></Table.Td>
-            </Table.Tr>)}</Table.Tbody>
-          </Table> : <Unavailable />}
-        </Paper>
-        <Paper p="sm" className={styles.overviewCard}>
-          <PanelHeading title="Recent price changes" subtitle={sample ? "Sample 24h · Same model / region / GPU count" : "No price history connected"} />
-          {overview.priceChanges.length ? <Stack gap={13}>
-            {overview.priceChanges.slice(0, 4).map((row) => {
-              const Icon = row.change === null || row.change === 0 ? IconMinus : row.change > 0 ? IconArrowUpRight : IconArrowDownRight;
-              const color = row.change === null || row.change === 0 ? "dimmed" : row.change > 0 ? "red.4" : "teal.4";
-              return <Group key={`${row.model}-${row.region}`} justify="space-between" gap={6} wrap="nowrap">
-                <Box style={{ minWidth: 0 }}><Text fz={11}>{row.model}</Text><Text fz={9} c="dimmed">{row.region}</Text></Box>
-                <Group gap={3} wrap="nowrap" c={color}><Icon size={12} aria-hidden /><Text fz={11} ff="monospace">{formatSignedPercent(row.change, "percent")}</Text></Group>
-              </Group>;
-            })}
-          </Stack> : <Unavailable />}
-        </Paper>
+              ))}
+              <Text c="dimmed" fz={12} mt="sm">Select a region to view its offers.</Text>
+            </div>
+          ) : <Unavailable />}
+        </Panel>
       </div>
-      <Tooltip label={periodDetails}><Text component="p" fz={9} c="dimmed" mt="sm" tabIndex={0}>{periodLabel}. {sample ? "All values are synthetic, not live Vast.ai or Databricks results." : "Connect market data to populate these panels."}</Text></Tooltip>
+      <div className={styles.analyticsBottom}>
+        <Panel title="Available models" subtitle="Listing count, not physical GPUs">
+          {overview.availability.length ? (
+            <ol className={styles.ruledList}>
+              {overview.availability.slice(0, 5).map((row) => (
+                <li key={row.model}>
+                  <UnstyledButton className={styles.listRow} onClick={() => onModel(row.model)} aria-label={`Show ${row.model} offers`}>
+                    <Text fz={14}>{row.model}</Text>
+                    <Text fz={14} ff="monospace" c="dimmed" className="tabular">{row.listings}</Text>
+                  </UnstyledButton>
+                </li>
+              ))}
+            </ol>
+          ) : <Unavailable />}
+        </Panel>
+        <Panel title="Quote changes" subtitle={sample ? "Illustrative 24-hour sample · same model, region, 1 GPU" : "No price history connected"}>
+          {overview.priceChanges.length ? (
+            <ol className={styles.ruledList}>
+              {overview.priceChanges.slice(0, 5).map((row) => {
+                const flat = row.change === null || row.change === 0;
+                const Icon = flat ? IconMinus : row.change! > 0 ? IconArrowUpRight : IconArrowDownRight;
+                const color = flat ? "dimmed" : row.change! > 0 ? "red.4" : "green.4";
+                return (
+                  <li key={`${row.model}-${row.region}`} className={styles.listRow}>
+                    <Text fz={14}>{row.model} <Text component="span" fz={13} c="dimmed">· {row.region}</Text></Text>
+                    <Group gap={3} wrap="nowrap" c={color}>
+                      <Icon size={14} aria-hidden />
+                      <Text fz={14} ff="monospace" className="tabular">{formatSignedPercent(row.change, "percent")}</Text>
+                    </Group>
+                  </li>
+                );
+              })}
+            </ol>
+          ) : <Unavailable />}
+        </Panel>
+      </div>
+      <Text component="p" fz={12} c="dimmed" mt="md">
+        {sample ? "All values are synthetic, not live Vast.ai or Databricks results." : "Connect market data to populate these sections."}
+      </Text>
     </section>
   );
 }
