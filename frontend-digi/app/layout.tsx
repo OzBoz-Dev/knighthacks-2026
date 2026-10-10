@@ -18,7 +18,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "digiGPU",
+  title: "solGPU",
   description:
     "Explore live GPU marketplace prices, find offers that fit your requirements, and keep verifiable reservation-intent receipts on Solana devnet.",
   other: { "darkreader-lock": "true" },

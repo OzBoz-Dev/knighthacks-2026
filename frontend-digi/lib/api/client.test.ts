@@ -155,8 +155,8 @@ describe("apiRequest", () => {
 
 describe("describeApiError", () => {
   it("uses safe messages", () => {
-    expect(describeApiError(new ApiError("network", "Could not reach the digiGPU API."))).toBe(
-      "Could not reach the digiGPU API.",
+    expect(describeApiError(new ApiError("network", "Could not reach the solGPU API."))).toBe(
+      "Could not reach the solGPU API.",
     );
     expect(describeApiError(new Error("internal detail"))).toBe(
       "Something went wrong while loading data.",

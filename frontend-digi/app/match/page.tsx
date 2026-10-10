@@ -10,7 +10,7 @@ export default function MatchPage() {
       />
       <EmptyState
         title="Matching not built yet"
-        description="The requirements form, ranked recommendations, and exclusion summary will appear here once connected to the digiGPU API."
+        description="The requirements form, ranked recommendations, and exclusion summary will appear here once connected to the solGPU API."
       />
     </>
   );

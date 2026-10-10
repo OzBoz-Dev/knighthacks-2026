@@ -1,4 +1,4 @@
-# digiGPU demo script
+# solGPU demo script
 
 Target time: 5:15. Keep 45 seconds in reserve for a delay or a question.
 Driver: P4 drives the laptop and speaks. One teammate stands ready to answer judge questions.
@@ -30,7 +30,7 @@ Action:
 
 Say:
 
-"The same GPU can have very different prices depending on the host and region. digiGPU makes
+"The same GPU can have very different prices depending on the host and region. solGPU makes
 that market easy to compare. What you see is {{NUMBER: data source label shown on Explore}}."
 
 ## 0:30-1:50 Explore: live inventory and insights
@@ -69,7 +69,7 @@ Action:
 
 Say:
 
-"I need 24 GB of VRAM and I can spend $2 an hour. digiGPU checked
+"I need 24 GB of VRAM and I can spend $2 an hour. solGPU checked
 {{NUMBER: checked offer count from the Match summary}} offers and
 {{NUMBER: eligible offer count from the Match summary}} meet the requirements. Budget removed {{NUMBER: budget exclusion count}} and VRAM removed
 {{NUMBER: VRAM exclusion count}}. The top option is a {{NUMBER: GPU model of the top match}} at
@@ -138,7 +138,7 @@ Action:
 
 Say:
 
-"digiGPU helps you explore the GPU market, choose with confidence, and preserve what you
+"solGPU helps you explore the GPU market, choose with confidence, and preserve what you
 selected. Thank you."
 
 ## Judge Q&A

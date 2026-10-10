@@ -1,4 +1,4 @@
-# digiGPU agent and contributor rules
+# solGPU agent and contributor rules
 
 Every engineer and every coding agent (Claude, Codex, Cursor, other tools) follows this page.
 Four people build in parallel for 12 hours. The rules keep the merges small, the contract stable,

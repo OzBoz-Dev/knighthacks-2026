@@ -33,7 +33,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
           <Burger hiddenFrom="sm" opened={opened} onClick={close} size="sm" mb="md" aria-label="Close navigation" />
           <Group renderRoot={(props) => <Link {...props} href="/" onClick={close} />} gap={10} wrap="nowrap" style={{ textDecoration: "none" }}>
             <Box w={16} h={16} bg="lava.5" style={{ borderRadius: 2 }} aria-hidden />
-            <Text fw={650} fz={20} c="dark.0" lh={1} style={{ letterSpacing: "-0.4px" }}>digiGPU</Text>
+            <Text fw={650} fz={20} c="dark.0" lh={1} style={{ letterSpacing: "-0.4px" }}>solGPU</Text>
           </Group>
         </AppShell.Section>
         <AppShell.Section grow component="nav" aria-label="Primary">
@@ -75,7 +75,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
       <AppShell.Main id="main-content" tabIndex={-1}>
         <Group hiddenFrom="sm" px="md" py="sm" gap="sm">
           <Burger opened={opened} onClick={toggle} size="sm" aria-label={opened ? "Close navigation" : "Open navigation"} aria-expanded={opened} />
-          <Text fw={600}>digiGPU</Text>
+          <Text fw={600}>solGPU</Text>
         </Group>
         <Container
           size={1600}

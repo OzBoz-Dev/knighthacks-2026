@@ -27,13 +27,13 @@ export type RequestOptions = {
 export function getApiBaseUrl(raw: string | undefined = process.env.NEXT_PUBLIC_API_URL): string {
   const value = raw?.trim();
   if (!value) {
-    throw new ApiError("config", "The digiGPU API URL is not configured (NEXT_PUBLIC_API_URL).");
+    throw new ApiError("config", "The solGPU API URL is not configured (NEXT_PUBLIC_API_URL).");
   }
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("protocol");
   } catch (cause) {
-    throw new ApiError("config", "The configured digiGPU API URL is invalid.", { cause });
+    throw new ApiError("config", "The configured solGPU API URL is invalid.", { cause });
   }
   return value.replace(/\/+$/, "");
 }
@@ -73,11 +73,11 @@ export async function apiRequest<T>(
     });
   } catch (cause) {
     if (signal?.aborted) throw new ApiError("aborted", "The request was cancelled.", { cause });
-    throw new ApiError("network", "Could not reach the digiGPU API.", { cause });
+    throw new ApiError("network", "Could not reach the solGPU API.", { cause });
   }
 
   if (!response.ok) {
-    throw new ApiError("http", `The digiGPU API responded with status ${response.status}.`, {
+    throw new ApiError("http", `The solGPU API responded with status ${response.status}.`, {
       status: response.status,
     });
   }
@@ -87,7 +87,7 @@ export async function apiRequest<T>(
     data = response.status === 204 ? null : await response.json();
   } catch (cause) {
     if (signal?.aborted) throw new ApiError("aborted", "The request was cancelled.", { cause });
-    throw new ApiError("invalid_response", "The digiGPU API returned an unreadable response.", {
+    throw new ApiError("invalid_response", "The solGPU API returned an unreadable response.", {
       cause,
     });
   }
@@ -96,7 +96,7 @@ export async function apiRequest<T>(
   try {
     return decode(data);
   } catch (cause) {
-    throw new ApiError("invalid_response", "The digiGPU API returned unexpected data.", { cause });
+    throw new ApiError("invalid_response", "The solGPU API returned unexpected data.", { cause });
   }
 }
 

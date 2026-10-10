@@ -13,7 +13,7 @@ export function getSolanaConfig(): SolanaConfig {
   if (endpoint.toLowerCase().includes("mainnet")) {
     // The URL is not in the message, because an RPC URL can hold an API key.
     throw new Error(
-      "NEXT_PUBLIC_SOLANA_RPC points to mainnet. digiGPU runs on devnet only. Set a devnet RPC URL or remove the variable.",
+      "NEXT_PUBLIC_SOLANA_RPC points to mainnet. solGPU runs on devnet only. Set a devnet RPC URL or remove the variable.",
     );
   }
   return { endpoint, cluster: "devnet", explorerCluster: "devnet" };

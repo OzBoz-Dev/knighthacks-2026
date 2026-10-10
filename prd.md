@@ -1,16 +1,16 @@
-# digiGPU — Hackathon PRD
+# solGPU — Hackathon PRD
 
 **Build window:** 12 hours · **Team:** 4 students · **Demo:** 6 minutes
 
 > **Explore live GPU prices, find the best option for your requirements, and keep a verifiable reservation receipt.**
 
-digiGPU makes GPU marketplaces easier to understand. It presents live Vast.ai inventory, uses Databricks to turn repeated market snapshots into pricing insights, recommends suitable offers with transparent rules, and records reservation intent on Solana devnet.
+solGPU makes GPU marketplaces easier to understand. It presents live Vast.ai inventory, uses Databricks to turn repeated market snapshots into pricing insights, recommends suitable offers with transparent rules, and records reservation intent on Solana devnet.
 
 ---
 
 ## 1. Product scope
 
-digiGPU has exactly three product features.
+solGPU has exactly three product features.
 
 ### 1. Explore
 Browse GPU inventory, compare hourly prices, filter by hardware and region, and visualize market pricing trends.
@@ -35,14 +35,14 @@ Renting a cloud GPU is confusing:
 - A cheap listing may have weak reliability or poor price-to-performance.
 - A saved screenshot or database row does not independently prove what the user selected.
 
-digiGPU turns raw marketplace inventory into a simple journey:
+solGPU turns raw marketplace inventory into a simple journey:
 
 1. **See the market.**
 2. **Enter requirements.**
 3. **Understand the recommendation.**
 4. **Sign and save the reservation intent.**
 
-This is the BNY story in plain language: digiGPU improves the process of comparing, selecting, and documenting a financial decision. Do not force banking jargon into the presentation.
+This is the BNY story in plain language: solGPU improves the process of comparing, selecting, and documenting a financial decision. Do not force banking jargon into the presentation.
 
 ---
 
@@ -70,7 +70,7 @@ Bronze: raw offers exactly as collected
               ↓
 Silver: typed, cleaned, deduplicated offers with canonical GPU/region names
               ↓
-Gold: price benchmarks and trend points consumed by digiGPU
+Gold: price benchmarks and trend points consumed by solGPU
 ```
 
 Gold outputs:
@@ -124,13 +124,13 @@ Target **5:15** and preserve 45 seconds for delays or questions.
 
 | Time | Screen | Demo action |
 |---|---|---|
-| 0:00–0:30 | Explore | “The same GPU can have very different prices depending on the host and region. digiGPU makes that market easy to compare.” |
+| 0:00–0:30 | Explore | “The same GPU can have very different prices depending on the host and region. solGPU makes that market easy to compare.” |
 | 0:30–1:50 | Explore | Show live Vast.ai inventory. Filter by GPU, VRAM, region, and price. Point out Lowest / Typical / High cards and the Databricks-powered trend chart. Use actual values, not invented statistics. |
 | 1:50–3:15 | Match | Enter 24 GB VRAM and a $2/hour budget. Show the top three suitable offers and their explanations. “This option meets the memory requirement, is 14% below the typical price for this model, and has 99.2% reliability.” |
 | 3:15–3:40 | Databricks proof | Expand “How pricing insights are calculated,” then briefly show the pre-opened Databricks gold table or dashboard. “Every point in the chart and every market comparison comes from this snapshot pipeline.” |
 | 3:40–4:50 | My Reservations | Open the top match, connect Phantom on devnet, click Reserve, approve the memo transaction, and show the confirmed receipt and Explorer link. |
 | 4:50–5:15 | Receipt verification | Click Verify on the reservation card. Show signer, offer, price, timestamp, and on-chain hash checks. |
-| 5:15–5:30 | Close | “digiGPU helps you explore the GPU market, choose with confidence, and preserve what you selected.” |
+| 5:15–5:30 | Close | “solGPU helps you explore the GPU market, choose with confidence, and preserve what you selected.” |
 
 ### Demo rule
 The product always labels its data source:
