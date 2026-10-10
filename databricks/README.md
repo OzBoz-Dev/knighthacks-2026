@@ -178,15 +178,16 @@ task after it:
 4. `data_quality`: notebook `03_data_quality`.
 5. `gold_market_summary`: SQL file `30_gold_market_summary.sql`.
 6. `gold_price_trends`: SQL file `31_gold_price_trends.sql`.
-7. `gold_offer_market_position`: SQL file `32_gold_offer_market_position.sql`.
-8. `gold_checks`: SQL file `39_gold_checks.sql`. It writes one row for each rule to
+7. `gold_price_index`: SQL file `33_gold_gpu_price_index.sql` (#155).
+8. `gold_offer_market_position`: SQL file `32_gold_offer_market_position.sql`.
+9. `gold_checks`: SQL file `39_gold_checks.sql`. It writes one row for each rule to
    `gold.contract_checks` and fails the task when a rule fails (#121).
 
 The data_quality task fails on purpose when silver is stale, which stops the gold tasks. The
 gold_checks task fails on purpose when a gold table breaks the frozen contract.
 
 To deploy or update: import the three notebooks to `/Shared/solgpu/<stem>` (Workspace API,
-`format: SOURCE`, `language: PYTHON`) and the five SQL files to `/Shared/solgpu/sql/<name>.sql`
+`format: SOURCE`, `language: PYTHON`) and the six SQL files to `/Shared/solgpu/sql/<name>.sql`
 (`format: AUTO`). Then `POST /api/2.2/jobs/create` with `pipeline.json` for a new job, or
 `POST /api/2.2/jobs/reset` with `{"job_id": 119782616481942, "new_settings": <pipeline.json>}`
 to update the existing one. To run it by hand: Workflows, `solgpu-pipeline`, Run now, or
