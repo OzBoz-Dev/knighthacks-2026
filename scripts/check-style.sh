@@ -27,3 +27,4 @@ for file in "$@"; do
 done
 [ "$status" -eq 0 ] && echo "style check passed: no emoji, em dash, or en dash in $# file(s)"
 exit $status
+
