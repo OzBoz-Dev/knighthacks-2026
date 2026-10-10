@@ -1,3 +1,8 @@
 api/.env
 api/data/
 api/api
+
+# Local branch transfer files. They are not part of the project.
+*.bundle
+push-*-branches.sh
+push-feature-backend.sh
