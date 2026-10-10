@@ -1,19 +1,33 @@
 # Databricks notebook source
 # Silver offers: cast every bronze row to the typed Offer columns of prd.md section 8 (plus
 # snapshot_id and captured_at). Units follow databricks/README.md "Vast.ai field units".
-# This notebook does not dedupe and does not reject rows, #86 adds that.
+# Rows that fail a reject rule, and duplicate (snapshot_id, id) rows, go to offers_rejected with a reason.
 import json
 
 dbutils.widgets.text("source_table", "solgpu.bronze.vast_offers_raw")
 dbutils.widgets.text("target_table", "solgpu.silver.offers")
+dbutils.widgets.text("rejected_table", "solgpu.silver.offers_rejected")
+dbutils.widgets.text("include_test_rows", "false")
 source_table = dbutils.widgets.get("source_table")
 target_table = dbutils.widgets.get("target_table")
+rejected_table = dbutils.widgets.get("rejected_table")
+include_test_rows = dbutils.widgets.get("include_test_rows") == "true"
 
 # COMMAND ----------
 
+# shortcut: synthetic test rows live behind a widget, upgrade to a real test fixture file in the volume when the pipeline has a test stage
+test_rows_sql = """
+  UNION ALL SELECT * FROM VALUES
+    ('test_rules', TIMESTAMP '2026-01-01 00:00:00', 'test_missing_gpu', NULL, NULL, 1, 24, 'US', 'Oregon, US', 1.0, 0.9, 100.0, true, TIMESTAMP '2026-01-01 00:00:00', 'test'),
+    ('test_rules', TIMESTAMP '2026-01-01 00:00:00', 'test_nonpositive_price', 'RTX 4090', 'RTX 4090', 1, 24, 'US', 'Oregon, US', 0.0, 0.9, 100.0, true, TIMESTAMP '2026-01-01 00:00:00', 'test'),
+    ('test_rules', TIMESTAMP '2026-01-01 00:00:00', 'test_bad_reliability', 'RTX 4090', 'RTX 4090', 1, 24, 'US', 'Oregon, US', 1.0, 1.5, 100.0, true, TIMESTAMP '2026-01-01 00:00:00', 'test'),
+    ('test_rules', TIMESTAMP '2026-01-01 00:00:00', 'test_duplicate', 'RTX 4090', 'RTX 4090', 1, 24, 'US', 'Oregon, US', 1.0, 0.9, 100.0, true, TIMESTAMP '2026-01-01 00:00:00', 'test'),
+    ('test_rules', TIMESTAMP '2026-01-01 00:00:00', 'test_duplicate', 'RTX 4090', 'RTX 4090', 1, 24, 'US', 'Oregon, US', 1.0, 0.9, 100.0, true, TIMESTAMP '2026-01-01 00:00:01', 'test')
+""" if include_test_rows else ""
+
 # shortcut: full rebuild from bronze each run, upgrade to an incremental MERGE when bronze passes about 1 million rows
 spark.sql(f"""
-CREATE OR REPLACE TABLE {target_table} USING DELTA AS
+CREATE OR REPLACE TEMP VIEW silver_candidates AS
 WITH typed AS (
   SELECT
     snapshot_id,
@@ -28,45 +42,52 @@ WITH typed AS (
     CAST(raw:dph_total AS DOUBLE) AS price_per_hour,
     CAST(raw:reliability2 AS DOUBLE) AS reliability,
     CAST(raw:dlperf AS DOUBLE) AS dlperf,
-    (CAST(raw:verification AS STRING) = 'verified') AS verified
+    (CAST(raw:verification AS STRING) = 'verified') AS verified,
+    ingested_at,
+    source_file
   FROM {source_table}
+  {test_rows_sql}
+),
+ranked AS (
+  SELECT *, row_number() OVER (PARTITION BY snapshot_id, id ORDER BY ingested_at, source_file) AS rn FROM typed
 )
 SELECT
   snapshot_id, captured_at, id, gpu_name, gpu_name_raw, num_gpus, gpu_ram_gb,
   gpu_ram_gb * num_gpus AS total_vram_gb,
   region, region_raw, price_per_hour, reliability, dlperf,
   CASE WHEN price_per_hour > 0 THEN dlperf / price_per_hour END AS performance_per_dollar,
-  verified
-FROM typed
+  verified,
+  CASE
+    WHEN gpu_name IS NULL OR trim(gpu_name) = '' THEN 'missing_gpu_name'
+    WHEN price_per_hour IS NULL OR price_per_hour <= 0 THEN 'nonpositive_price'
+    WHEN reliability IS NULL OR reliability < 0 OR reliability > 1 THEN 'reliability_out_of_range'
+    WHEN rn > 1 THEN 'duplicate'
+  END AS reject_reason
+FROM ranked
 """)
+spark.sql(f"CREATE OR REPLACE TABLE {target_table} USING DELTA AS SELECT * EXCEPT (reject_reason) FROM silver_candidates WHERE reject_reason IS NULL")
+spark.sql(f"CREATE OR REPLACE TABLE {rejected_table} USING DELTA AS SELECT *, current_timestamp() AS rejected_at FROM silver_candidates WHERE reject_reason IS NOT NULL")
 
 # COMMAND ----------
 
-bronze_rows = spark.table(source_table).count()
-stats = spark.sql(f"""
-SELECT count(*) AS silver_rows, count(DISTINCT snapshot_id) AS snapshots, count(DISTINCT gpu_name) AS gpu_names,
-       sum(CASE WHEN reliability < 0 OR reliability > 1 THEN 1 ELSE 0 END) AS bad_reliability,
-       sum(CASE WHEN total_vram_gb <> gpu_ram_gb * num_gpus THEN 1 ELSE 0 END) AS bad_total_vram
-FROM {target_table}
-""").first()
+bronze_rows = spark.table(source_table).count() + (5 if include_test_rows else 0)
+silver_rows = spark.table(target_table).count()
+rejected_df = spark.sql(f"SELECT reject_reason, count(*) AS n FROM {rejected_table} GROUP BY reject_reason ORDER BY reject_reason")
+rejected_df.show(truncate=False)
+rejected_by_reason = {r["reject_reason"]: r["n"] for r in rejected_df.collect()}
+duplicate_pairs = spark.sql(f"SELECT count(*) AS n FROM (SELECT snapshot_id, id FROM {target_table} GROUP BY 1, 2 HAVING count(*) > 1)").first()["n"]
+test_rows_in_silver = spark.sql(f"SELECT count(*) AS n FROM {target_table} WHERE snapshot_id = 'test_rules'").first()["n"]
 
 summary = {
     "bronze_rows": bronze_rows,
-    "silver_rows": stats["silver_rows"],
-    "snapshots": stats["snapshots"],
-    "gpu_names": stats["gpu_names"],
-    "bad_reliability": stats["bad_reliability"],
-    "bad_total_vram": stats["bad_total_vram"],
+    "silver_rows": silver_rows,
+    "rejected_rows": sum(rejected_by_reason.values()),
+    "rejected_by_reason": rejected_by_reason,
+    "duplicates": rejected_by_reason.get("duplicate", 0),
+    "duplicate_pairs_in_silver": duplicate_pairs,
 }
 print(summary)
-assert summary["bronze_rows"] == summary["silver_rows"], "this issue keeps every bronze row"
-assert summary["bad_reliability"] == 0 and summary["bad_total_vram"] == 0, summary
-
-# Three offers to compare with the Vast.ai web page: RTX 4090 and RTX 3090 show 24 GB, H100 SXM 80 GB.
-spark.sql(f"""
-SELECT id, gpu_name, gpu_ram_gb, total_vram_gb, price_per_hour, region FROM {target_table}
-WHERE gpu_name_raw IN ('RTX 4090', 'RTX 3090', 'H100 SXM') AND num_gpus = 1
-QUALIFY row_number() OVER (PARTITION BY gpu_name_raw ORDER BY price_per_hour, id) = 1
-ORDER BY gpu_name
-""").show(truncate=False)
+assert summary["bronze_rows"] == summary["silver_rows"] + summary["rejected_rows"], "every row is kept or rejected"
+assert duplicate_pairs == 0, "silver.offers holds no duplicate (snapshot_id, id)"
+assert include_test_rows or test_rows_in_silver == 0, "production silver holds no test rows"
 dbutils.notebook.exit(json.dumps(summary))
