@@ -103,6 +103,24 @@ If the script cannot run, upload one file by hand:
 CLI alternative, in one line: `databricks fs cp <file> dbfs:/Volumes/solgpu/bronze/raw_snapshots/`.
 This path needs the Databricks CLI installed and configured. The Python script needs no CLI.
 
+## Direct Vast.ai access from a notebook
+
+Question (#62): can a scheduled notebook on serverless compute in Free Edition call the Vast.ai
+API directly? If it can, the pipeline does not need the local file and the upload step.
+
+Test: import `databricks/notebooks/test_vast_access.py` into the workspace and run it on serverless
+compute, or run it through the Jobs API. The notebook calls the public offers endpoint
+`https://console.vast.ai/api/v0/bundles/` with no key, prints the first five RTX 4090 offers, and
+exits with a JSON result.
+
+Result as of 2026-10-10T21:27Z, two runs: Allowed: HTTP 200, 5 offers in 1.03 seconds, then HTTP
+200, 5 offers in 0.74 seconds.
+
+The plan does not change without team agreement in #2. The Go collector (#11) stays the source of
+snapshot files. A direct path would mean: a scheduled notebook writes the snapshot JSON to the
+volume itself, no laptop, no upload step. The public endpoint caps at 64 offers per query, so a
+direct notebook would need the Vast.ai key as a Databricks secret to get the full inventory.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
