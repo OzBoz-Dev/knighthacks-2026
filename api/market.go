@@ -109,21 +109,25 @@ func (h marketHandler) trends(w http.ResponseWriter, r *http.Request) {
 }
 
 // registerMarket adds the market routes. Fixture mode skips the warehouse.
-func registerMarket(mux *http.ServeMux, cfg Config) {
+// It returns the medians from the same cache and export, for the offers and the match.
+func registerMarket(mux *http.ServeMux, cfg Config) medianSource {
 	var h marketHandler
+	var m medianSource
 	if !cfg.UseDatabricksFixture {
 		c, err := databricks.NewClient(cfg.DatabricksHost, cfg.DatabricksToken, cfg.DatabricksWarehouseID)
 		if err != nil {
 			slog.Error("databricks client", "err", err)
 		} else {
-			h.live = liveMarket{databricks.NewCache(c, time.Now)}
+			m.live = databricks.NewCache(c, time.Now)
+			h.live = liveMarket{m.live}
 		}
 	}
 	if e, err := databricks.LoadExport(exportPath); err != nil {
 		slog.Warn("databricks export unavailable", "err", err)
 	} else {
-		h.export = exportMarket{e}
+		m.export, h.export = e, exportMarket{e}
 	}
 	mux.HandleFunc("GET /api/market/summary", h.summary)
 	mux.HandleFunc("GET /api/market/trends", h.trends)
+	return m
 }

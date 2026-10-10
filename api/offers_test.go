@@ -36,10 +36,12 @@ func (f *stubFetcher) Fetch(context.Context) (vast.Result, error) {
 	}}, nil
 }
 
+func noMedians(context.Context) map[string]float64 { return nil }
+
 func getOffers(t *testing.T, src vast.Source) (int, contract.Envelope[[]contract.Offer]) {
 	t.Helper()
 	rec := httptest.NewRecorder()
-	offersHandler(src).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/offers", nil))
+	offersHandler(src, noMedians).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/offers", nil))
 	var env contract.Envelope[[]contract.Offer]
 	if rec.Code == http.StatusOK {
 		if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
@@ -109,7 +111,7 @@ func TestOffersLiveDownServesSavedFile(t *testing.T) {
 
 func TestOffersNoData(t *testing.T) {
 	rec := httptest.NewRecorder()
-	offersHandler(stubSource{err: errors.New("no vast data")}).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/offers", nil))
+	offersHandler(stubSource{err: errors.New("no vast data")}, noMedians).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/offers", nil))
 	var body map[string]map[string]string
 	json.Unmarshal(rec.Body.Bytes(), &body)
 	if rec.Code != 503 || body["error"]["code"] != "upstream_unavailable" {

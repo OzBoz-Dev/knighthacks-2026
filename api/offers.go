@@ -42,7 +42,8 @@ func (w withSaved) Get(ctx context.Context) (vast.Snapshot, error) {
 }
 
 // offersHandler serves GET /api/offers. It does not filter, because Explore and Match filter.
-func offersHandler(src vast.Source) http.HandlerFunc {
+// medians gives the gold median of each GPU for the market position, or nil.
+func offersHandler(src vast.Source, medians func(context.Context) map[string]float64) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		snap, err := src.Get(r.Context())
 		if err != nil {
@@ -59,7 +60,7 @@ func offersHandler(src vast.Source) http.HandlerFunc {
 			Source:     source,
 			CapturedAt: snap.CapturedAt.UTC().Format(time.RFC3339),
 			SnapshotID: &id,
-			Data:       snap.Offers,
+			Data:       withMarketPosition(snap.Offers, medians(r.Context())),
 		})
 	}
 }

@@ -39,7 +39,7 @@ func main() {
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
-	registerMarket(mux, cfg)
+	medians := registerMarket(mux, cfg)
 
 	mux.Handle("POST /api/reservations", createReservation(db, noOffers{}))
 
@@ -49,7 +49,7 @@ func main() {
 		slog.Error("vast fixture", "err", err)
 		os.Exit(1)
 	}
-	mux.HandleFunc("GET /api/offers", offersHandler(offers))
+	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
 	mux.HandleFunc("POST /api/match", matchHandler(offers))
 
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
