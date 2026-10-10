@@ -23,7 +23,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
       <Box className={styles.toolbar}>
         <TextInput
           className={styles.search}
-          size="md"
+          size="sm"
           aria-label="Search GPU models or regions"
           placeholder="Search models or regions"
           leftSection={<IconSearch size={16} aria-hidden />}
@@ -31,8 +31,9 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
           value={search}
           onChange={(event) => onSearch(event.currentTarget.value)}
           disabled={!sample}
+          mb={10}
         />
-        <Group className={styles.toolbarActions} gap="sm" wrap="nowrap">
+        <Group className={styles.toolbarActions} gap={8} wrap="nowrap" justify="space-between">
           <UnstyledButton onClick={indexModal.open} className={styles.indexReadout} aria-label="Global GPU index methodology">
             <Box>
               <Text fz={11} c="dimmed" tt="uppercase" fw={600} style={{ letterSpacing: "0.8px" }}>GPU index{sample && " · sample"}</Text>
@@ -47,7 +48,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
             <IconInfoCircle size={14} color="var(--mantine-color-dimmed)" aria-hidden />
           </UnstyledButton>
           <Tooltip label="Preview only — wallet integration is pending">
-            <Button variant="default" size="md" onClick={walletModal.open} leftSection={<IconWallet size={17} aria-hidden />} rightSection={<Badge size="sm" color="gray" variant="outline" tt="none">Preview</Badge>}>
+            <Button variant="default" size="sm" onClick={walletModal.open} leftSection={<IconWallet size={17} aria-hidden />} rightSection={<Badge size="sm" color="gray" variant="outline" tt="none">Preview</Badge>}>
               Connect Phantom
             </Button>
           </Tooltip>

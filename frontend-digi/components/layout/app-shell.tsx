@@ -77,7 +77,11 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
           <Burger opened={opened} onClick={toggle} size="sm" aria-label={opened ? "Close navigation" : "Open navigation"} aria-expanded={opened} />
           <Text fw={600}>digiGPU</Text>
         </Group>
-        <Container size={1600} px={{ base: "md", lg: 40 }} py={{ base: "md", lg: 32 }}>
+        <Container
+          size={1600}
+          px={{ base: "md", lg: pathname === "/" ? 18 : 40 }}
+          py={{ base: "md", lg: pathname === "/" ? 16 : 32 }}
+        >
           {children}
         </Container>
       </AppShell.Main>
