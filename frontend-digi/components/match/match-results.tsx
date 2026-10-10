@@ -7,6 +7,7 @@ import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { EmptyState } from "@/components/shared/async-state";
 import { MarketPositionBadge } from "@/components/explore/market-position-badge";
 import { ScoreBreakdown } from "./score-breakdown";
+import { ExclusionSummary } from "./exclusion-summary";
 
 // shortcut: MatchResponse has no source or capture time, so the label says unknown, upgrade when #26 adds them to the match response.
 const MATCH_PROVENANCE = { source: "unknown", timestamp: null } as const;
@@ -48,11 +49,12 @@ export function MatchResults({ response, request }: { response: MatchResponse; r
           <Title order={2} id="match-results-title" fz={18}>Top matches</Title>
           <DataSourceLabel provenance={MATCH_PROVENANCE} compact />
         </Group>
-        <Text fz={12} c="dimmed" role="status" aria-live="polite">
-          {response.recommendations.length} ranked {response.recommendations.length === 1 ? "offer" : "offers"}
+        <Text fz={12} c="dimmed">
+          Top {response.recommendations.length} of {response.eligible} suitable {response.eligible === 1 ? "offer" : "offers"}
         </Text>
       </Group>
-      <Text fz={11} c="dimmed" mb="sm">The match API does not send the data source or capture time yet. Snapshot {response.snapshot_id}.</Text>
+      <ExclusionSummary response={response} />
+      <Text fz={11} c="dimmed" mt={6} mb="sm">The match API does not send the data source or capture time yet. Snapshot {response.snapshot_id}.</Text>
       {response.recommendations.length ? (
         <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
           {response.recommendations.map((rec) => <ResultCard key={rec.offer.id} rec={rec} priority={request.priority} />)}
