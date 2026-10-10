@@ -2,6 +2,8 @@
 # Silver offers: cast every bronze row to the typed Offer columns of prd.md section 8 (plus
 # snapshot_id and captured_at). Units follow databricks/README.md "Vast.ai field units".
 # Rows that fail a reject rule, and duplicate (snapshot_id, id) rows, go to offers_rejected with a reason.
+# gpu_name and region come from the explicit maps in sql/20_name_maps.sql; a value with no map
+# row keeps its raw value and gets gpu_name_mapped or region_mapped = false.
 import json
 
 dbutils.widgets.text("source_table", "solgpu.bronze.vast_offers_raw")
@@ -48,13 +50,24 @@ WITH typed AS (
   FROM {source_table}
   {test_rows_sql}
 ),
+mapped AS (
+  SELECT
+    t.* EXCEPT (gpu_name, region),
+    coalesce(g.canonical_name, t.gpu_name_raw) AS gpu_name,
+    g.raw_name IS NOT NULL AS gpu_name_mapped,
+    coalesce(r.canonical_region, t.region) AS region,
+    r.raw_region IS NOT NULL AS region_mapped
+  FROM typed t
+  LEFT JOIN solgpu.silver.gpu_name_map g ON t.gpu_name_raw = g.raw_name
+  LEFT JOIN solgpu.silver.region_map r ON t.region = r.raw_region
+),
 ranked AS (
-  SELECT *, row_number() OVER (PARTITION BY snapshot_id, id ORDER BY ingested_at, source_file) AS rn FROM typed
+  SELECT *, row_number() OVER (PARTITION BY snapshot_id, id ORDER BY ingested_at, source_file) AS rn FROM mapped
 )
 SELECT
-  snapshot_id, captured_at, id, gpu_name, gpu_name_raw, num_gpus, gpu_ram_gb,
+  snapshot_id, captured_at, id, gpu_name, gpu_name_raw, gpu_name_mapped, num_gpus, gpu_ram_gb,
   gpu_ram_gb * num_gpus AS total_vram_gb,
-  region, region_raw, price_per_hour, reliability, dlperf,
+  region, region_raw, region_mapped, price_per_hour, reliability, dlperf,
   CASE WHEN price_per_hour > 0 THEN dlperf / price_per_hour END AS performance_per_dollar,
   verified,
   CASE
@@ -77,6 +90,16 @@ rejected_df.show(truncate=False)
 rejected_by_reason = {r["reject_reason"]: r["n"] for r in rejected_df.collect()}
 duplicate_pairs = spark.sql(f"SELECT count(*) AS n FROM (SELECT snapshot_id, id FROM {target_table} GROUP BY 1, 2 HAVING count(*) > 1)").first()["n"]
 test_rows_in_silver = spark.sql(f"SELECT count(*) AS n FROM {target_table} WHERE snapshot_id = 'test_rules'").first()["n"]
+unmapped_df = spark.sql(f"""
+SELECT 'gpu' AS kind, gpu_name_raw AS raw_value, count(*) AS n FROM {target_table}
+WHERE NOT gpu_name_mapped AND snapshot_id = (SELECT max(snapshot_id) FROM {target_table}) GROUP BY 1, 2
+UNION ALL
+SELECT 'region' AS kind, region_raw AS raw_value, count(*) AS n FROM {target_table}
+WHERE NOT region_mapped AND snapshot_id = (SELECT max(snapshot_id) FROM {target_table}) GROUP BY 1, 2
+ORDER BY 1, 3 DESC
+""")
+unmapped_df.show(truncate=False)
+unmapped = unmapped_df.collect()
 
 summary = {
     "bronze_rows": bronze_rows,
@@ -85,6 +108,8 @@ summary = {
     "rejected_by_reason": rejected_by_reason,
     "duplicates": rejected_by_reason.get("duplicate", 0),
     "duplicate_pairs_in_silver": duplicate_pairs,
+    "unmapped_gpu_names": sum(1 for r in unmapped if r["kind"] == "gpu"),
+    "unmapped_regions": sum(1 for r in unmapped if r["kind"] == "region"),
 }
 print(summary)
 assert summary["bronze_rows"] == summary["silver_rows"] + summary["rejected_rows"], "every row is kept or rejected"
