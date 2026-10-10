@@ -7,6 +7,7 @@ import { selectInsights } from "@/lib/explore/selectors";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { MarketSummaryCards } from "./market-summary-cards";
 import { PriceTrendChart } from "./price-trend-chart";
+import { InsightsMethod } from "./insights-method";
 import styles from "./explore.module.css";
 
 export function MarketInsights({ insights, models }: { insights: Insights; models: string[] }) {
@@ -17,6 +18,7 @@ export function MarketInsights({ insights, models }: { insights: Insights; model
       <section aria-labelledby="market-insights-title" className={styles.insights}>
         <Title order={2} id="market-insights-title" fz={15} fw={600}>Pricing insights</Title>
         <Text c="dimmed" fz={12} pt="xs" role="status">Pricing insights temporarily unavailable. Offers and filters still work.</Text>
+        <InsightsMethod provenance={provenance} />
       </section>
     );
   }
@@ -42,6 +44,7 @@ export function MarketInsights({ insights, models }: { insights: Insights; model
       <Text fz={12} fw={600} mt="md">Median price over time</Text>
       <Text fz={10} c="dimmed">Shaded band: 10th to 90th percentile · UTC</Text>
       <PriceTrendChart points={trend} gpuName={model} />
+      <InsightsMethod provenance={provenance} />
     </section>
   );
 }
