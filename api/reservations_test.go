@@ -243,3 +243,44 @@ func TestConfirmReservationErrors(t *testing.T) {
 		t.Fatalf("an error must not change the reservation: %+v", got)
 	}
 }
+
+func TestListReservations(t *testing.T) {
+	db := pendingDB(t)
+	for _, r := range []contract.Reservation{
+		{ID: "res_new", CreatedAt: "2026-10-10T20:10:00.000Z"},
+		{ID: "res_old", CreatedAt: "2026-10-10T19:00:00.000Z"},
+		{ID: "res_other", CreatedAt: "2026-10-10T21:00:00.000Z", Wallet: goodWallet},
+	} {
+		if r.Wallet == "" {
+			r.Wallet = txWallet
+		}
+		r.Status = contract.StatusPending
+		if err := store.Create(db, r); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mux := http.NewServeMux()
+	mux.Handle("GET /api/reservations", listReservations(db))
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/reservations?wallet="+txWallet, nil))
+	var list []contract.Reservation
+	json.Unmarshal(w.Body.Bytes(), &list)
+	if w.Code != http.StatusOK || len(list) != 3 || list[0].ID != "res_new" || list[1].ID != txResID || list[2].ID != "res_old" {
+		t.Fatalf("status %d body %s", w.Code, w.Body)
+	}
+
+	w = httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/reservations?wallet=other", nil))
+	if w.Code != http.StatusOK || strings.TrimSpace(w.Body.String()) != "[]" {
+		t.Fatalf("no reservations: status %d body %s", w.Code, w.Body)
+	}
+
+	for _, url := range []string{"/api/reservations", "/api/reservations?wallet=%20"} {
+		w = httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest(http.MethodGet, url, nil))
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), `"bad_request"`) {
+			t.Fatalf("%s: status %d body %s", url, w.Code, w.Body)
+		}
+	}
+}

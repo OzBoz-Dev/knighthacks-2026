@@ -210,3 +210,21 @@ func getReservation(w http.ResponseWriter, db *sql.DB, id string) (contract.Rese
 func expected(res contract.Reservation) solanaverify.Expected {
 	return solanaverify.Expected{Prefix: reservation.MemoPrefix, ReservationID: res.ID, Wallet: res.Wallet, PayloadHash: res.PayloadHash}
 }
+
+// listReservations handles GET /api/reservations?wallet=. It returns the wallet reservations, newest first.
+func listReservations(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		wallet := strings.TrimSpace(r.URL.Query().Get("wallet"))
+		if wallet == "" {
+			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, "wallet is required.")
+			return
+		}
+		list, err := store.ListByWallet(db, wallet)
+		if err != nil {
+			slog.Error("list reservations", "err", err)
+			httpx.WriteError(w, http.StatusInternalServerError, httpx.CodeInternal, "Your reservations could not be read. Try again.")
+			return
+		}
+		httpx.WriteJSON(w, http.StatusOK, list)
+	}
+}

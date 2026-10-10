@@ -51,6 +51,7 @@ func main() {
 	offers := newRecentSnapshots(source)
 	mux.Handle("POST /api/reservations", createReservation(db, offers))
 	mux.Handle("POST /api/reservations/{id}/confirm", confirmReservation(db, rpc.New(cfg.SolanaRPCURL)))
+	mux.Handle("GET /api/reservations", listReservations(db))
 	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
 	mux.HandleFunc("POST /api/match", matchHandler(offers, medians.get))
 
