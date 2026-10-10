@@ -13,7 +13,7 @@
       },
       "logMessages": [
         "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr invoke [1]",
-        "Program log: Memo (len 105): \"CX1|3b1f8c2a-6d4e-4f7a-9c0b-2e5d8a1f4c6b|8675af8fe6185424cf3f4b29027aa829bf4735064d18879d698fcaa91f6e8ecc\"",
+        "Program log: Memo (len 105): \"SG1|3b1f8c2a-6d4e-4f7a-9c0b-2e5d8a1f4c6b|8675af8fe6185424cf3f4b29027aa829bf4735064d18879d698fcaa91f6e8ecc\"",
         "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr consumed 37814 of 200000 compute units",
         "Program MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr success"
       ],
@@ -34,7 +34,7 @@
     },
     "slot": 418392215,
     "transaction": [
-      "AW2LGInbZaKhMhIihqmBGWnPvc6NTLszGOjc3DIS9s3WYzlrk1Mo35/K/x7jaDK3pFSF6JYJesO4H6Ply2B8fwABAAEC5FhXF7WrHwd67+4GwRliLwSsREs7CTmu7Tn1l4Ah8ugFSlNamSkhBk0k6HFg2jh8fDW13bySu4HkH6hAQQVEjXcOYHYk1okmXKbESITQgH2bBU0jxHPBBscr6d4ItzdsAQEBAGlDWDF8M2IxZjhjMmEtNmQ0ZS00ZjdhLTljMGItMmU1ZDhhMWY0YzZifDg2NzVhZjhmZTYxODU0MjRjZjNmNGIyOTAyN2FhODI5YmY0NzM1MDY0ZDE4ODc5ZDY5OGZjYWE5MWY2ZThlY2M=",
+      "AW2LGInbZaKhMhIihqmBGWnPvc6NTLszGOjc3DIS9s3WYzlrk1Mo35/K/x7jaDK3pFSF6JYJesO4H6Ply2B8fwABAAEC5FhXF7WrHwd67+4GwRliLwSsREs7CTmu7Tn1l4Ah8ugFSlNamSkhBk0k6HFg2jh8fDW13bySu4HkH6hAQQVEjXcOYHYk1okmXKbESITQgH2bBU0jxHPBBscr6d4ItzdsAQEBAGlTRzF8M2IxZjhjMmEtNmQ0ZS00ZjdhLTljMGItMmU1ZDhhMWY0YzZifDg2NzVhZjhmZTYxODU0MjRjZjNmNGIyOTAyN2FhODI5YmY0NzM1MDY0ZDE4ODc5ZDY5OGZjYWE5MWY2ZThlY2M=",
       "base64"
     ],
     "version": "legacy"

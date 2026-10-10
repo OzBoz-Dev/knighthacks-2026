@@ -22,7 +22,7 @@ const (
 	hash      = "8675af8fe6185424cf3f4b29027aa829bf4735064d18879d698fcaa91f6e8ecc"
 )
 
-var good = Expected{Prefix: "CX1", ReservationID: resID, Wallet: wallet, PayloadHash: hash}
+var good = Expected{Prefix: "SG1", ReservationID: resID, Wallet: wallet, PayloadHash: hash}
 
 // recorded starts a JSON-RPC server that returns the testdata file and checks the request.
 func recorded(t *testing.T, file, sig string) *rpc.Client {
@@ -61,14 +61,14 @@ func TestVerify(t *testing.T) {
 		failed []string
 	}{
 		{"good transaction", "get_transaction_good.json", goodSig, good, nil},
-		{"wrong signer", "get_transaction_good.json", goodSig, Expected{"CX1", resID, "11111111111111111111111111111111", hash}, []string{CheckSigner}},
+		{"wrong signer", "get_transaction_good.json", goodSig, Expected{"SG1", resID, "11111111111111111111111111111111", hash}, []string{CheckSigner}},
 		// The memo program key is in the transaction, but it did not sign.
-		{"account key that did not sign", "get_transaction_good.json", goodSig, Expected{"CX1", resID, "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", hash}, []string{CheckSigner}},
+		{"account key that did not sign", "get_transaction_good.json", goodSig, Expected{"SG1", resID, "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr", hash}, []string{CheckSigner}},
 		{"wrong prefix", "get_transaction_good.json", goodSig, Expected{"DG1", resID, wallet, hash}, []string{CheckReservationID, CheckMemoHash}},
 		{"memo v1 program", "get_transaction_memo_v1.json", v1Sig, good, nil},
 		{"memo text sent to another program", "get_transaction_other_program.json", noopSig, good, []string{CheckReservationID, CheckMemoHash}},
-		{"wrong memo id", "get_transaction_good.json", goodSig, Expected{"CX1", "other-id", wallet, hash}, []string{CheckReservationID}},
-		{"wrong hash", "get_transaction_good.json", goodSig, Expected{"CX1", resID, wallet, "00" + hash[2:]}, []string{CheckMemoHash}},
+		{"wrong memo id", "get_transaction_good.json", goodSig, Expected{"SG1", "other-id", wallet, hash}, []string{CheckReservationID}},
+		{"wrong hash", "get_transaction_good.json", goodSig, Expected{"SG1", resID, wallet, "00" + hash[2:]}, []string{CheckMemoHash}},
 		{"failed transaction", "get_transaction_failed.json", failedSig, good, []string{CheckConfirmed}},
 		{"missing transaction", "get_transaction_not_found.json", goodSig, good, []string{CheckExists, CheckSigner, CheckReservationID, CheckMemoHash, CheckConfirmed}},
 	}

@@ -55,7 +55,7 @@ func TestPayloadChangedFieldChangesHash(t *testing.T) {
 }
 
 func TestMemo(t *testing.T) {
-	if got := Memo("res_1", "abc"); got != "CX1|res_1|abc" {
+	if got := Memo("res_1", "abc"); got != "SG1|res_1|abc" {
 		t.Fatalf("memo = %s", got)
 	}
 }

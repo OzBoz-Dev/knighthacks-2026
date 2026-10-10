@@ -9,8 +9,8 @@ import (
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 )
 
-// MemoPrefix starts every memo. PRD 5.3 sets CX1. Issues #2 and #41 may change it.
-const MemoPrefix = "CX1"
+// MemoPrefix starts every memo. Issue #41 chose SG1 after the rename to solGPU.
+const MemoPrefix = "SG1"
 
 // Payload returns the canonical payload and its SHA-256 hash in lowercase hex.
 // The payload comes from a map, so json.Marshal sorts the keys. A struct would keep its field order.
