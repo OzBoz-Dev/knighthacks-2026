@@ -23,6 +23,26 @@ jobs:
           git log --format=%B "origin/$BASE_REF..HEAD" > pr-commits.txt
       - name: no emoji, em dash, or en dash
         run: bash scripts/check-style.sh pr-title.txt pr-body.txt pr-commits.txt
+      - name: conventional commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          title="$PR_TITLE"
+          types='feat|fix|chore|docs|refactor|test|perf|ci|build'
+          scopes='web|solana|api|databricks|fixtures|docs|repo'
+          if [ "${#title}" -gt 72 ]; then echo "title has ${#title} characters; the limit is 72: $title"; exit 1; fi
+          if ! printf '%s' "$title" | grep -Eq "^($types)\(($scopes)\): "; then
+            echo "title must match <type>(<scope>): <subject> with type in {$types} and scope in {$scopes}: $title"; exit 1
+          fi
+          subject=${title#*: }
+          case "$subject" in
+            [a-z0-9]*) ;;
+            *) echo "subject must start in lower case: $subject"; exit 1 ;;
+          esac
+          case "$subject" in
+            *.) echo "subject must not end with a full stop: $subject"; exit 1 ;;
+          esac
+          echo "title check passed: $title"
 
   api:
     runs-on: ubuntu-latest
