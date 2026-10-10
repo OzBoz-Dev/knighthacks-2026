@@ -54,6 +54,98 @@
         "SELECT date_format(max(updated_at), 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS latest_snapshot\n",
         "FROM solgpu.gold.gpu_market_summary\n"
       ]
+    },
+    {
+      "name": "lineage_latest",
+      "displayName": "Row count per stage, latest snapshot",
+      "queryLines": [
+        "WITH latest AS (SELECT max(snapshot_id) AS sid, date_format(max(captured_at), 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time FROM solgpu.silver.offers),\n",
+        "counts AS (\n",
+        "  SELECT 'bronze.vast_offers_raw' AS stage, count(*) AS rows, 1 AS stage_order FROM solgpu.bronze.vast_offers_raw, latest WHERE snapshot_id = latest.sid\n",
+        "  UNION ALL SELECT 'silver.offers', count(*), 2 FROM solgpu.silver.offers, latest WHERE snapshot_id = latest.sid\n",
+        "  UNION ALL SELECT 'silver.offers_rejected', count(*), 3 FROM solgpu.silver.offers_rejected, latest WHERE snapshot_id = latest.sid\n",
+        "  UNION ALL SELECT 'gold.gpu_market_summary (models)', count(*), 4 FROM solgpu.gold.gpu_market_summary, latest WHERE snapshot_id = latest.sid\n",
+        "  UNION ALL SELECT 'gold.gpu_price_trends (rows for this snapshot)', count(*), 5 FROM solgpu.gold.gpu_price_trends, latest WHERE snapshot_id = latest.sid\n",
+        "  UNION ALL SELECT 'gold.offer_market_position (single-GPU offers)', count(*), 6 FROM solgpu.gold.offer_market_position, latest WHERE snapshot_id = latest.sid\n",
+        ")\n",
+        "SELECT counts.stage, counts.rows, counts.stage_order, latest.snapshot_time\n",
+        "FROM counts CROSS JOIN latest\n",
+        "ORDER BY counts.stage_order\n"
+      ]
+    },
+    {
+      "name": "data_quality",
+      "displayName": "Data quality per snapshot (silver.data_quality)",
+      "queryLines": [
+        "SELECT date_format(captured_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time, snapshot_id, raw_rows, silver_rows, rejected_total,\n",
+        "  rejected_missing_gpu_name, rejected_nonpositive_price, rejected_reliability_out_of_range, duplicates_removed,\n",
+        "  distinct_gpu_names_raw, distinct_gpu_names_canonical, unmapped_gpu_names, unmapped_gpu_rows, unmapped_regions\n",
+        "FROM solgpu.silver.data_quality\n",
+        "ORDER BY captured_at DESC\n"
+      ]
+    },
+    {
+      "name": "rejected_by_reason",
+      "displayName": "Rejected rows by reason, all snapshots",
+      "queryLines": [
+        "SELECT reject_reason, count(*) AS rows\n",
+        "FROM solgpu.silver.offers_rejected\n",
+        "GROUP BY 1\n",
+        "ORDER BY 2 DESC\n"
+      ]
+    },
+    {
+      "name": "dq_totals",
+      "displayName": "Data quality totals, all snapshots",
+      "queryLines": [
+        "SELECT sum(duplicates_removed) AS duplicates_removed, sum(rejected_total) AS rejected_total, count(*) AS snapshots\n",
+        "FROM solgpu.silver.data_quality\n"
+      ]
+    },
+    {
+      "name": "unmapped_latest",
+      "displayName": "Unmapped GPU names and regions, latest snapshot",
+      "queryLines": [
+        "SELECT 'gpu' AS kind, gpu_name_raw AS raw_value, count(*) AS rows\n",
+        "FROM solgpu.silver.offers\n",
+        "WHERE NOT gpu_name_mapped AND snapshot_id = (SELECT max(snapshot_id) FROM solgpu.silver.offers)\n",
+        "GROUP BY 1, 2\n",
+        "UNION ALL\n",
+        "SELECT 'region', region_raw, count(*)\n",
+        "FROM solgpu.silver.offers\n",
+        "WHERE NOT region_mapped AND snapshot_id = (SELECT max(snapshot_id) FROM solgpu.silver.offers)\n",
+        "GROUP BY 1, 2\n",
+        "ORDER BY 1, 3 DESC\n"
+      ]
+    },
+    {
+      "name": "names_before_after",
+      "displayName": "GPU names before and after the name map, latest snapshot",
+      "queryLines": [
+        "SELECT distinct_gpu_names_raw, distinct_gpu_names_canonical, unmapped_gpu_names, date_format(captured_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time\n",
+        "FROM solgpu.silver.data_quality\n",
+        "ORDER BY captured_at DESC\n",
+        "LIMIT 1\n"
+      ]
+    },
+    {
+      "name": "contract_checks_latest",
+      "displayName": "Gold contract checks, latest run",
+      "queryLines": [
+        "SELECT table_name, rule, failing_rows, passed, date_format(checked_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS checked_at\n",
+        "FROM solgpu.gold.contract_checks\n",
+        "WHERE checked_at = (SELECT max(checked_at) FROM solgpu.gold.contract_checks)\n",
+        "ORDER BY table_name, rule\n"
+      ]
+    },
+    {
+      "name": "contract_checks_summary",
+      "displayName": "Gold contract checks passed, latest run",
+      "queryLines": [
+        "SELECT sum(CASE WHEN passed THEN 1 ELSE 0 END) AS rules_passed, count(*) AS rules_total, date_format(max(checked_at), 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS checked_at\n",
+        "FROM solgpu.gold.contract_checks\n",
+        "WHERE checked_at = (SELECT max(checked_at) FROM solgpu.gold.contract_checks)\n"
+      ]
     }
   ],
   "pages": [
@@ -660,6 +752,843 @@
             "y": 34,
             "width": 6,
             "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    },
+    {
+      "name": "lineage",
+      "displayName": "Lineage and data quality",
+      "layout": [
+        {
+          "widget": {
+            "name": "lineage_header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Lineage and data quality\n",
+                "\n",
+                "Bronze keeps every raw offer (append-only). Silver types, maps names, dedups by (snapshot_id, offer_id), and rejects bad rows into silver.offers_rejected. Gold rebuilds from silver every 10 minutes. Counts below are for the snapshot time shown."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "lineage_snapshot",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage_latest",
+                  "fields": [
+                    {
+                      "name": "snapshot_time",
+                      "expression": "MAX(`snapshot_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "snapshot_time",
+                  "displayName": "Lineage view: snapshot (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Lineage view: snapshot (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "lineage_stages",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage_latest",
+                  "fields": [
+                    {
+                      "name": "stages",
+                      "expression": "COUNT(`stage`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "stages",
+                  "displayName": "Stages counted (bronze, silver, gold)"
+                }
+              },
+              "frame": {
+                "title": "Stages counted (bronze, silver, gold)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "lineage_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage_latest",
+                  "fields": [
+                    {
+                      "name": "stage",
+                      "expression": "`stage`"
+                    },
+                    {
+                      "name": "rows",
+                      "expression": "`rows`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "stage",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "stage"
+                },
+                "y": {
+                  "fieldName": "rows",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "rows"
+                }
+              },
+              "frame": {
+                "title": "Row count per stage, bronze to silver to gold, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 2,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "lineage_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage_latest",
+                  "fields": [
+                    {
+                      "name": "stage",
+                      "expression": "`stage`"
+                    },
+                    {
+                      "name": "rows",
+                      "expression": "`rows`"
+                    },
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "stage",
+                    "displayName": "stage"
+                  },
+                  {
+                    "fieldName": "rows",
+                    "displayName": "rows"
+                  },
+                  {
+                    "fieldName": "snapshot_time",
+                    "displayName": "snapshot_time"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Row count per stage, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "data_quality",
+                  "fields": [
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    },
+                    {
+                      "name": "raw_rows",
+                      "expression": "`raw_rows`"
+                    },
+                    {
+                      "name": "silver_rows",
+                      "expression": "`silver_rows`"
+                    },
+                    {
+                      "name": "rejected_total",
+                      "expression": "`rejected_total`"
+                    },
+                    {
+                      "name": "rejected_missing_gpu_name",
+                      "expression": "`rejected_missing_gpu_name`"
+                    },
+                    {
+                      "name": "rejected_nonpositive_price",
+                      "expression": "`rejected_nonpositive_price`"
+                    },
+                    {
+                      "name": "rejected_reliability_out_of_range",
+                      "expression": "`rejected_reliability_out_of_range`"
+                    },
+                    {
+                      "name": "duplicates_removed",
+                      "expression": "`duplicates_removed`"
+                    },
+                    {
+                      "name": "distinct_gpu_names_raw",
+                      "expression": "`distinct_gpu_names_raw`"
+                    },
+                    {
+                      "name": "distinct_gpu_names_canonical",
+                      "expression": "`distinct_gpu_names_canonical`"
+                    },
+                    {
+                      "name": "unmapped_gpu_names",
+                      "expression": "`unmapped_gpu_names`"
+                    },
+                    {
+                      "name": "unmapped_gpu_rows",
+                      "expression": "`unmapped_gpu_rows`"
+                    },
+                    {
+                      "name": "unmapped_regions",
+                      "expression": "`unmapped_regions`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "snapshot_time",
+                    "displayName": "snapshot_time"
+                  },
+                  {
+                    "fieldName": "raw_rows",
+                    "displayName": "raw_rows"
+                  },
+                  {
+                    "fieldName": "silver_rows",
+                    "displayName": "silver_rows"
+                  },
+                  {
+                    "fieldName": "rejected_total",
+                    "displayName": "rejected_total"
+                  },
+                  {
+                    "fieldName": "rejected_missing_gpu_name",
+                    "displayName": "rejected_missing_gpu_name"
+                  },
+                  {
+                    "fieldName": "rejected_nonpositive_price",
+                    "displayName": "rejected_nonpositive_price"
+                  },
+                  {
+                    "fieldName": "rejected_reliability_out_of_range",
+                    "displayName": "rejected_reliability_out_of_range"
+                  },
+                  {
+                    "fieldName": "duplicates_removed",
+                    "displayName": "duplicates_removed"
+                  },
+                  {
+                    "fieldName": "distinct_gpu_names_raw",
+                    "displayName": "distinct_gpu_names_raw"
+                  },
+                  {
+                    "fieldName": "distinct_gpu_names_canonical",
+                    "displayName": "distinct_gpu_names_canonical"
+                  },
+                  {
+                    "fieldName": "unmapped_gpu_names",
+                    "displayName": "unmapped_gpu_names"
+                  },
+                  {
+                    "fieldName": "unmapped_gpu_rows",
+                    "displayName": "unmapped_gpu_rows"
+                  },
+                  {
+                    "fieldName": "unmapped_regions",
+                    "displayName": "unmapped_regions"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Data quality per snapshot (silver.data_quality), newest first",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_duplicates",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_totals",
+                  "fields": [
+                    {
+                      "name": "duplicates_removed",
+                      "expression": "`duplicates_removed`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "duplicates_removed",
+                  "displayName": "Duplicates removed, all snapshots"
+                }
+              },
+              "frame": {
+                "title": "Duplicates removed, all snapshots",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_rejected",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_totals",
+                  "fields": [
+                    {
+                      "name": "rejected_total",
+                      "expression": "`rejected_total`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "rejected_total",
+                  "displayName": "Rejected rows, all snapshots"
+                }
+              },
+              "frame": {
+                "title": "Rejected rows, all snapshots",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rejected_bar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "rejected_by_reason",
+                  "fields": [
+                    {
+                      "name": "reject_reason",
+                      "expression": "`reject_reason`"
+                    },
+                    {
+                      "name": "rows",
+                      "expression": "`rows`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "reject_reason",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "reject reason"
+                },
+                "y": {
+                  "fieldName": "rows",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "rows"
+                }
+              },
+              "frame": {
+                "title": "Rejected rows by reason, all snapshots (silver.offers_rejected)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 19,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "rejected_note",
+            "multilineTextboxSpec": {
+              "lines": [
+                "The live data has had 0 rejected rows so far; the reject rules are tested with synthetic rows through the silver notebook widget include_test_rows, see #86."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 25,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "names_raw",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "names_before_after",
+                  "fields": [
+                    {
+                      "name": "distinct_gpu_names_raw",
+                      "expression": "`distinct_gpu_names_raw`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "distinct_gpu_names_raw",
+                  "displayName": "Distinct GPU names before the name map, latest snapshot"
+                }
+              },
+              "frame": {
+                "title": "Distinct GPU names before the name map, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 27,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "names_canonical",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "names_before_after",
+                  "fields": [
+                    {
+                      "name": "distinct_gpu_names_canonical",
+                      "expression": "`distinct_gpu_names_canonical`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "distinct_gpu_names_canonical",
+                  "displayName": "Distinct GPU names after the name map, latest snapshot"
+                }
+              },
+              "frame": {
+                "title": "Distinct GPU names after the name map, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 27,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "names_unmapped",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "names_before_after",
+                  "fields": [
+                    {
+                      "name": "unmapped_gpu_names",
+                      "expression": "`unmapped_gpu_names`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "unmapped_gpu_names",
+                  "displayName": "Unmapped GPU names, latest snapshot"
+                }
+              },
+              "frame": {
+                "title": "Unmapped GPU names, latest snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 27,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "unmapped_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "unmapped_latest",
+                  "fields": [
+                    {
+                      "name": "kind",
+                      "expression": "`kind`"
+                    },
+                    {
+                      "name": "raw_value",
+                      "expression": "`raw_value`"
+                    },
+                    {
+                      "name": "rows",
+                      "expression": "`rows`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "kind",
+                    "displayName": "kind"
+                  },
+                  {
+                    "fieldName": "raw_value",
+                    "displayName": "raw_value"
+                  },
+                  {
+                    "fieldName": "rows",
+                    "displayName": "rows"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Unmapped GPU names and regions, latest snapshot (kept with their raw value)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 30,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "checks_passed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "contract_checks_summary",
+                  "fields": [
+                    {
+                      "name": "rules_passed",
+                      "expression": "`rules_passed`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "rules_passed",
+                  "displayName": "Gold contract rules passed, latest run (13 rules)"
+                }
+              },
+              "frame": {
+                "title": "Gold contract rules passed, latest run (13 rules)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 36,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "checks_time",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "contract_checks_summary",
+                  "fields": [
+                    {
+                      "name": "checked_at",
+                      "expression": "`checked_at`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "checked_at",
+                  "displayName": "Contract check run (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Contract check run (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 36,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "checks_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "contract_checks_latest",
+                  "fields": [
+                    {
+                      "name": "table_name",
+                      "expression": "`table_name`"
+                    },
+                    {
+                      "name": "rule",
+                      "expression": "`rule`"
+                    },
+                    {
+                      "name": "failing_rows",
+                      "expression": "`failing_rows`"
+                    },
+                    {
+                      "name": "passed",
+                      "expression": "`passed`"
+                    },
+                    {
+                      "name": "checked_at",
+                      "expression": "`checked_at`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "table_name",
+                    "displayName": "table_name"
+                  },
+                  {
+                    "fieldName": "rule",
+                    "displayName": "rule"
+                  },
+                  {
+                    "fieldName": "failing_rows",
+                    "displayName": "failing_rows"
+                  },
+                  {
+                    "fieldName": "passed",
+                    "displayName": "passed"
+                  },
+                  {
+                    "fieldName": "checked_at",
+                    "displayName": "checked_at"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "Gold contract checks, latest run (gold.contract_checks)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 39,
+            "width": 6,
+            "height": 8
           }
         }
       ],
