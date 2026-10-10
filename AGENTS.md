@@ -39,7 +39,7 @@ A change to a shared file needs agreement from the team in the issue first.
 
 - The navigation holds exactly three tabs: Explore, Match, and My Reservations.
 - Do not change a frozen type in `prd.md` section 8 without team approval. Change the PRD, the
-  TypeScript type, the Pydantic model, and the fixtures in one pull request.
+  TypeScript type, the Go struct, and the fixtures in one pull request.
 - Solana uses devnet, Phantom, `@solana/web3.js` v1, Wallet Adapter, and the Memo program only.
   Do not add a transfer, a token, a custom program, or Anchor.
 - Databricks does deterministic analytics with SQL and PySpark. Do not add a model.
@@ -186,7 +186,7 @@ Run the checks for each area that your change touches. Paste the results in the 
 | Area | Commands |
 |---|---|
 | `digiGPU/` | `npm run lint`, `npm run typecheck`, `npm run build` |
-| `api/` | The test and lint commands in `api/README.md` |
+| `api/` | `gofmt -l .` (prints nothing), `go vet ./...`, `go test ./...`, `go build ./...` |
 | `databricks/` | Run the changed notebook or script, and paste the row counts |
 
 Use `npm ci`, not `npm install`, unless you add a dependency on purpose.
@@ -235,3 +235,7 @@ These rules apply to every file and every message:
 - `digiGPU/AGENTS.md` holds the Next.js rules for the web app. Read it before you edit
   `digiGPU/`. This Next.js version has breaking changes.
 - Load the Solana wallet provider in a client component with SSR disabled.
+- `api/` is a Go service. `prd.md` section 7, Backend stack, names the libraries. Use the
+  standard library first. Run `go mod tidy` after you add or remove an import.
+- Build the canonical reservation payload from a map, as `prd.md` section 8 says. A struct
+  keeps its field order, so its hash differs.
