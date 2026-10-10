@@ -13,9 +13,14 @@ import (
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8000"
+	if err := loadDotEnv(".env"); err != nil {
+		slog.Error("read .env", "err", err)
+		os.Exit(1)
+	}
+	cfg, err := loadConfig(os.Getenv)
+	if err != nil {
+		slog.Error("config", "err", err)
+		os.Exit(1)
 	}
 
 	mux := http.NewServeMux()
@@ -24,7 +29,7 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	srv := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: ":" + cfg.Port, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
