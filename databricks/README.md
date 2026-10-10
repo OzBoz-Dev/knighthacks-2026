@@ -163,6 +163,34 @@ reports it and do not divide by `num_gpus`.
 `api/NOTES.md` (#94) does not exist yet. P2 must confirm these units there; if they differ, the
 silver notebook changes, not this table.
 
+## Pipeline job
+
+Issue #116. The job `solgpu-pipeline` (job id `119782616481942`) runs every 10 minutes at :05,
+:15, :25 and so on, UTC, 5 minutes after the collector writes a file. This is the orchestration
+the team decision in #39 proposes. The definition is `databricks/jobs/pipeline.json`, the body
+for `POST /api/2.2/jobs/create`. Each task runs on serverless compute; the SQL tasks use the
+Serverless Starter Warehouse. The tasks run in one linear chain, so a failed task stops every
+task after it:
+
+1. `bronze_ingest`: notebook `01_bronze_ingest`, COPY INTO from the volume.
+2. `name_maps`: SQL file `20_name_maps.sql`.
+3. `silver_offers`: notebook `02_silver_offers`.
+4. `data_quality`: notebook `03_data_quality`.
+5. `gold_market_summary`: SQL file `30_gold_market_summary.sql`.
+6. `gold_price_trends`: SQL file `31_gold_price_trends.sql`.
+7. `gold_offer_market_position`: SQL file `32_gold_offer_market_position.sql`.
+
+The data_quality task fails on purpose when silver is stale, which stops the gold tasks.
+
+To deploy or update: import the three notebooks to `/Shared/solgpu/<stem>` (Workspace API,
+`format: SOURCE`, `language: PYTHON`) and the four SQL files to `/Shared/solgpu/sql/<name>.sql`
+(`format: AUTO`). Then `POST /api/2.2/jobs/create` with `pipeline.json` for a new job, or
+`POST /api/2.2/jobs/reset` with `{"job_id": 119782616481942, "new_settings": <pipeline.json>}`
+to update the existing one. To run it by hand: Workflows, `solgpu-pipeline`, Run now, or
+`POST /api/2.2/jobs/run-now` with the job id. A failure shows on the run page in Workflows: the
+failed task is red and the tasks after it show Upstream failed. Every task is idempotent, so a
+repair run or the next scheduled run is safe.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
