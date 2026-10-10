@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"math"
 	"slices"
@@ -24,9 +25,7 @@ type medianSource struct {
 // get returns the medians, or nil when Databricks has none. It never fails the caller.
 func (m medianSource) get(ctx context.Context) map[string]float64 {
 	if m.live != nil {
-		ctx, cancel := context.WithTimeout(ctx, mediansTimeout)
-		defer cancel()
-		med, err := databricks.Medians(ctx, m.live)
+		med, err := m.liveMedians(ctx)
 		if err == nil {
 			return med
 		}
@@ -36,6 +35,30 @@ func (m medianSource) get(ctx context.Context) map[string]float64 {
 		return m.export.Medians()
 	}
 	return nil
+}
+
+// liveMedians waits for the warehouse for at most mediansTimeout. The query itself continues to the
+// client timeout and fills the cache, so a slow warehouse still serves the next request.
+func (m medianSource) liveMedians(ctx context.Context) (map[string]float64, error) {
+	type result struct {
+		med map[string]float64
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		med, err := databricks.Medians(context.WithoutCancel(ctx), m.live)
+		done <- result{med, err}
+	}()
+	timer := time.NewTimer(mediansTimeout)
+	defer timer.Stop()
+	select {
+	case r := <-done:
+		return r.med, r.err
+	case <-timer.C:
+		return nil, errors.New("databricks medians took too long")
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 // withMarketPosition returns a copy of the offers with market_position_pct set from the GPU median.

@@ -15,11 +15,13 @@ import (
 )
 
 type medianQuerier struct {
-	rows [][]string
-	err  error
+	rows  [][]string
+	err   error
+	delay time.Duration
 }
 
 func (q medianQuerier) Query(context.Context, string, ...databricks.Param) (databricks.Result, error) {
+	time.Sleep(q.delay)
 	return databricks.Result{Rows: q.rows}, q.err
 }
 
@@ -61,6 +63,22 @@ func TestMedianSourceFallback(t *testing.T) {
 	}
 	if m := (medianSource{live: down}).get(ctx); m != nil {
 		t.Fatalf("none: %v", m)
+	}
+}
+
+func TestSlowMediansFillTheCache(t *testing.T) {
+	cache := databricks.NewCache(medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}, delay: mediansTimeout + 200*time.Millisecond}, time.Now)
+	m := medianSource{live: cache}
+	start := time.Now()
+	if med := m.get(context.Background()); med != nil {
+		t.Fatalf("a slow warehouse must give nil, got %v", med)
+	}
+	if d := time.Since(start); d > mediansTimeout+100*time.Millisecond {
+		t.Fatalf("get waited %v", d)
+	}
+	time.Sleep(400 * time.Millisecond)
+	if med := m.get(context.Background()); med["RTX 4090"] != 0.48 {
+		t.Fatalf("the late result must fill the cache, got %v", med)
 	}
 }
 
