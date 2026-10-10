@@ -318,7 +318,7 @@ Status is one of:
 │ React · TypeScript · Tailwind · shadcn/ui · Recharts│
 └───────────────┬───────────────────────┬─────────────┘
                 │ REST                  │ Wallet Adapter + web3.js v1
-┌───────────────▼──── FastAPI ──────────┐  ┌──────────▼───────────┐
+┌───────────────▼──── Go API ───────────┐  ┌──────────▼───────────┐
 │ Vast client and normalization        │  │ Solana devnet        │
 │ Deterministic match engine           │  │ Phantom + Memo       │
 │ SQLite reservations                  │  └──────────────────────┘
@@ -332,6 +332,23 @@ Status is one of:
 │ SQL warehouse + dashboard                            │
 └───────────────────────────────────────────────────────┘
 ```
+
+### Backend stack
+
+The API is a Go service in `/api`. It uses the standard library first.
+
+| Need | Choice |
+|---|---|
+| HTTP server and routing | `net/http` with Go 1.22 method and path patterns |
+| Vast.ai client and JSON | `net/http`, `encoding/json` |
+| Databricks SQL | `github.com/databricks/databricks-sdk-go`, Statement Execution API with named parameters |
+| Reservations | SQLite through `modernc.org/sqlite` (pure Go, no cgo) |
+| Solana transaction checks | `github.com/gagliardetto/solana-go` |
+| Receipt hash | `crypto/sha256` |
+| Snapshot collector | A goroutine with `time.Ticker` inside the API process |
+| CORS | A small middleware that allows the web origin |
+
+Add a dependency only when the standard library does not cover the need.
 
 ### Folder ownership
 
@@ -473,12 +490,22 @@ export type Reservation = {
 
 The Databricks client uses named SQL parameters. Never interpolate request values into SQL.
 
+### Canonical reservation payload
+
+The API builds `canonical_payload` once and stores it. The frontend and the verifier use that exact string and never encode it again.
+
+- Build the payload from a `map[string]any`. `encoding/json` sorts map keys, but it keeps struct fields in declaration order.
+- Encode with `json.Marshal`, with no indentation and no extra spaces.
+- `payload_hash` is the lowercase hex SHA-256 of the payload bytes.
+
+Memo format: `CX1|<reservation_id>|<payload_hash>`.
+
 ---
 
 ## 9. Databricks implementation
 
 ### Collection
-- FastAPI writes one raw Vast.ai snapshot file every 10 minutes to a shared local directory.
+- The Go API writes one raw Vast.ai snapshot file every 10 minutes to a shared local directory.
 - P4 owns `/databricks/upload_snapshots.py`, which uploads new files to a Unity Catalog Volume and records what succeeded.
 - Upload failure does not break Explore or Match; the script retries on the next cycle.
 - Start collection and upload by H1 so the demo has real history.
@@ -504,7 +531,7 @@ The Databricks client uses named SQL parameters. Never interpolate request value
 Use SQL window functions for percentiles and ranks. Do not add a model.
 
 ### Product connection
-FastAPI reads gold tables through the Databricks SQL Statement Execution API and caches successful responses for five minutes.
+The Go API reads gold tables through the Databricks SQL Statement Execution API and caches successful responses for five minutes.
 
 Fallback:
 - Export gold results at H7 to `fixtures/databricks_market.json`.
@@ -524,7 +551,7 @@ Fallback:
 
 | Time | P1 — Frontend | P2 — Backend | P3 — Solana | P4 — Databricks + Pitch |
 |---|---|---|---|---|
-| H0–0:45 | Scaffold app, nav, frozen types, fixture API client | FastAPI/SQLite scaffold; test Vast key and fields | Install wallet adapter/web3.js; put Phantom on devnet; obtain test SOL | Create Free Edition workspace, catalog/schema/volume, notebook skeleton |
+| H0–0:45 | Scaffold app, nav, frozen types, fixture API client | Go API and SQLite scaffold; test Vast key and fields | Install wallet adapter/web3.js; put Phantom on devnet; obtain test SOL | Create Free Edition workspace, catalog/schema/volume, notebook skeleton |
 | H0:45–3 | Explore table, filters, cards, chart on fixtures | `/offers`, normalization, real fixture by H2; collector writing files by H1 | `/solana-lab`: connect Phantom, sign Memo, confirm, open Explorer | Upload script running by H1; ingest first snapshot; bronze/silver/gold tables; initial dashboard |
 | **H3 checkpoint** | **Live offers render; Phantom memo confirms; Databricks has a gold summary row** | | | |
 | H3–5 | Match form/results/explanations on fixtures | Deterministic `/match`; Databricks SQL client; market endpoints | Reusable wallet and Reserve components; verification helper | Trend and market-position tables; export fixtures; work with P2 on live query |
