@@ -41,6 +41,23 @@ volume, and the bronze ingest reads it. One file is one JSON object:
 - `offers` is the raw `offers` array from the Vast.ai response, with no change.
 - The file name is `snapshot_<captured_at as 20261010T204000Z>.json`.
 
+## Warm-up before the demo
+
+A cold warehouse can take minutes to start, and the first match query must not wait for it. With
+the three environment variables set, run:
+
+```
+python databricks/warm_up.py
+```
+
+Run it right before judging, and again if the warehouse idled more than 10 minutes. The script
+starts the warehouse, prints each warehouse state with the elapsed seconds, runs one query on
+`solgpu.gold.gpu_market_summary`, prints the top five rows, and prints the total time as
+`warm-up done in 12.4 s`. It exits 1 if the warehouse does not reach RUNNING within 10 minutes.
+
+If the script prints `gold table missing: run the pipeline (#116) before the demo`, the warehouse
+runs but gold is empty. Run the pipeline job, then run the warm-up again.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
