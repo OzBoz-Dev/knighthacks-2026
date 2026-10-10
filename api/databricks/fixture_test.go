@@ -11,7 +11,7 @@ const exportJSON = `{"exported_at":"2026-10-10T17:00:00Z","snapshot_id":null,
 "trends":[
 {"gpu_name":"RTX 4090","region":"US","timestamp":"2026-10-10T16:50:00Z","minimum_price":0.3,"median_price":0.49,"p10_price":0.33,"p90_price":0.7,"listing_count":204},
 {"gpu_name":"RTX 4090","region":"US","timestamp":"2026-10-10T16:40:00Z","minimum_price":0.3,"median_price":0.48,"p10_price":0.32,"p90_price":0.7,"listing_count":200},
-{"gpu_name":"RTX 4090","region":"ALL","timestamp":"2026-10-10T16:45:00Z","minimum_price":0.3,"median_price":0.5,"p10_price":0.32,"p90_price":0.8,"listing_count":224},
+{"gpu_name":"RTX 4090","region":"all","timestamp":"2026-10-10T16:45:00Z","minimum_price":0.3,"median_price":0.5,"p10_price":0.32,"p90_price":0.8,"listing_count":224},
 {"gpu_name":"RTX 4090","region":"EU","timestamp":"2026-10-10T16:45:00Z","minimum_price":0.4,"median_price":0.5,"p10_price":0.41,"p90_price":0.8,"listing_count":20}]}`
 
 func TestLoadExport(t *testing.T) {

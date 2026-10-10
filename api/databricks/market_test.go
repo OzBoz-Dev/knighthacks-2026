@@ -66,7 +66,7 @@ func TestTrends(t *testing.T) {
 	if len(pts) != 2 || pts[1].P10Price != 0.34 || pts[1].Timestamp != "2026-10-10T16:50:00Z" || pts[0].ListingCount != 204 {
 		t.Fatalf("points = %+v", pts)
 	}
-	if len(q.params) != 2 || q.params[1] != (Param{"region", "ALL"}) {
+	if len(q.params) != 2 || q.params[1] != (Param{"region", "all"}) {
 		t.Fatalf("params = %v", q.params)
 	}
 	q.rows = [][]string{{"2026-10-10 16:40:00", "0.3"}}

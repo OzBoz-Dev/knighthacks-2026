@@ -46,7 +46,7 @@ func (q *rowQuerier) Query(_ context.Context, stmt string, _ ...databricks.Param
 
 const handlerExport = `{"exported_at":"2026-10-10T17:00:00Z","snapshot_id":null,
 "summaries":[{"gpu_name":"RTX 4090","listing_count":200,"lowest_price":0.3,"median_price":0.47,"p90_price":0.7,"median_reliability":0.98,"updated_at":"2026-10-10T16:50:00Z"}],
-"trends":[{"gpu_name":"RTX 4090","region":"ALL","timestamp":"2026-10-10T16:50:00Z","minimum_price":0.3,"median_price":0.49,"p10_price":0.33,"p90_price":0.7,"listing_count":204},
+"trends":[{"gpu_name":"RTX 4090","region":"all","timestamp":"2026-10-10T16:50:00Z","minimum_price":0.3,"median_price":0.49,"p10_price":0.33,"p90_price":0.7,"listing_count":204},
 {"gpu_name":"RTX 4090","region":"US","timestamp":"2026-10-10T16:50:00Z","minimum_price":0.3,"median_price":0.49,"p10_price":0.33,"p90_price":0.7,"listing_count":204}]}`
 
 func testExport(t *testing.T) marketReader {

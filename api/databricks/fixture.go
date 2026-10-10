@@ -65,7 +65,7 @@ func (e *Export) Medians() map[string]float64 {
 	return m
 }
 
-// TrendPoints returns the points of the GPU in time order. An empty region means the rows with region "ALL".
+// TrendPoints returns the points of the GPU in time order. An empty region means the rows with region "all".
 func (e *Export) TrendPoints(gpuName, region string) []contract.TrendPoint {
 	if region == "" {
 		region = AllRegions
