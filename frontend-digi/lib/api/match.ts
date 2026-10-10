@@ -79,6 +79,19 @@ export function decodeMatchResponse(data: unknown): MatchResponse {
   return { request_id: text(r.request_id, "request_id"), snapshot_id: text(r.snapshot_id, "snapshot_id"), checked, eligible, excluded, recommendations };
 }
 
+export type MatchOptions = { gpuNames: string[]; regions: string[] };
+
+// shortcut: reads only gpu_name and region from GET /api/offers for the form choices, upgrade to the #188 offers decoder when it lands.
+export function decodeMatchOptions(data: unknown): MatchOptions {
+  const offers = list(record(data, "response").data, "data").map((item, i) => record(item, `data[${i}]`));
+  const unique = (key: "gpu_name" | "region") => [...new Set(offers.map((o, i) => text(o[key], `data[${i}].${key}`)))].sort();
+  return { gpuNames: unique("gpu_name"), regions: unique("region") };
+}
+
+export function getMatchOptions(options: Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl"> = {}): Promise<MatchOptions> {
+  return apiRequest("/api/offers", { ...options, decode: decodeMatchOptions });
+}
+
 // A mutation: apiRequest never retries, so one submit sends one request.
 export function postMatch(request: MatchRequest, options: Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl"> = {}): Promise<MatchResponse> {
   return apiRequest("/api/match", { ...options, method: "POST", body: request, decode: decodeMatchResponse });

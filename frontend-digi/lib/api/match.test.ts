@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "./client";
-import { decodeMatchResponse, postMatch } from "./match";
+import { decodeMatchOptions, decodeMatchResponse, postMatch } from "./match";
 import type { MatchRequest } from "./types";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../fixtures/match.json", import.meta.url), "utf8")) as { request: MatchRequest; response: Record<string, unknown> };
@@ -59,6 +59,21 @@ describe("decodeMatchResponse", () => {
     const body = clone();
     body.recommendations.reverse();
     expect(decodeMatchResponse(body).recommendations.map((r) => r.offer.id)).toEqual(["10000001", "10000002"]);
+  });
+});
+
+describe("decodeMatchOptions", () => {
+  const offers = JSON.parse(readFileSync(new URL("../../../fixtures/offers.json", import.meta.url), "utf8")) as { data: { gpu_name: string; region: string }[] };
+
+  it("lists each GPU model and region once, sorted", () => {
+    const options = decodeMatchOptions(offers);
+    expect(options.gpuNames).toEqual([...new Set(offers.data.map((o) => o.gpu_name))].sort());
+    expect(options.regions).toEqual([...new Set(offers.data.map((o) => o.region))].sort());
+  });
+
+  it("rejects a response without an offer list or with a blank name", () => {
+    expect(() => decodeMatchOptions({})).toThrow(/data/);
+    expect(() => decodeMatchOptions({ data: [{ gpu_name: " ", region: "US" }] })).toThrow(/gpu_name/);
   });
 });
 
