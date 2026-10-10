@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 )
@@ -37,6 +38,8 @@ func main() {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
+	mux.Handle("POST /api/reservations", createReservation(db, noOffers{}))
+
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -57,3 +60,8 @@ func main() {
 		slog.Error("shutdown failed", "err", err)
 	}
 }
+
+// noOffers is a placeholder until the offers lane supplies the snapshot lookup.
+type noOffers struct{}
+
+func (noOffers) Offer(string, string) (contract.Offer, bool) { return contract.Offer{}, false }
