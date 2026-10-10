@@ -1,0 +1,14 @@
+{
+  "source": "dev-sample",
+  "captured_at": "2026-10-10T20:00:00Z",
+  "snapshot_id": "snap_20261010T200000Z",
+  "data": {
+    "gpu_name": "RTX 4090",
+    "listing_count": 212,
+    "lowest_price": 0.29,
+    "median_price": 0.48,
+    "p90_price": 0.71,
+    "median_reliability": 0.981,
+    "updated_at": "2026-10-10T20:00:00Z"
+  }
+}
