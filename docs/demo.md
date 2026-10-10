@@ -141,6 +141,61 @@ Say:
 "digiGPU helps you explore the GPU market, choose with confidence, and preserve what you
 selected. Thank you."
 
+## Judge Q&A
+
+Each team member reads these answers once before the demo. Answer in one or two sentences, then
+stop. The answers come from `prd.md` section 14, changed to match the built product.
+
+**Q: What does Databricks do?**
+
+A: "It turns repeated raw Vast.ai snapshots into price benchmarks, percentiles, and trends through
+bronze, silver, and gold tables. The cards and chart in Explore and the price explanations in Match
+read those gold tables through our Go API."
+
+**Q: Why not calculate that directly in the frontend?**
+
+A: "The frontend sees one moment. Databricks keeps every 10 minute snapshot, rejects bad rows,
+removes duplicates, and produces reusable gold tables that any screen can read."
+
+**Q: Why no machine learning?**
+
+A: "The useful result is transparent market analytics. A model trained on a few hours of data would
+be less trustworthy, not more."
+
+**Q: What does the Solana transaction prove?**
+
+A: "It proves that the reservation wallet signed this reservation intent, including the offer ID
+and the quoted price, at that slot and time. The memo holds the SHA-256 of the canonical payload, so
+anyone can re-hash the stored reservation and compare."
+
+**Q: Is it a real booking or payment?**
+
+A: "No. It is a reservation intent on Solana devnet. No money and no GPU access change hands."
+
+**Q: Why Solana instead of only SQLite?**
+
+A: "A SQLite row can be changed by us. The Solana receipt can be independently checked against the
+reservation hash."
+
+**Q: What comes next?**
+
+A: "More GPU providers, longer price history, price alerts, and provider-side booking after the
+selection and receipt flow is validated."
+
+**Q: What happens when Vast.ai or Databricks is down?**
+
+A: "Explore loads the most recent saved snapshot and labels it `Saved market snapshot from {time}`.
+If Databricks is down, the table keeps working and the insights hide behind 'Pricing insights
+temporarily unavailable'. If the warehouse is down, the API serves the gold export with its
+original timestamp and the source `databricks-export`. We never show saved data as live."
+
+**Q: How is the match ranking decided?**
+
+A: "It's deterministic. Hard filters run in order: model, region, VRAM, reliability, budget. Then
+price, dlperf, and reliability are each scaled 0 to 100 and weighted by the priority. Ties go to
+the lower price, then higher reliability, then offer ID. The same snapshot and request always
+return the same order."
+
 ## Numbers to fill in
 
 Issue #142 fills the Source and Capture time columns.
