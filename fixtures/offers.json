@@ -1,0 +1,67 @@
+{
+  "source": "dev-sample",
+  "captured_at": "2026-10-10T20:00:00Z",
+  "snapshot_id": "snap_20261010T200000Z",
+  "data": [
+    {
+      "id": "10000001",
+      "gpu_name": "RTX 4090",
+      "num_gpus": 1,
+      "gpu_ram_gb": 24,
+      "total_vram_gb": 24,
+      "region": "US",
+      "price_per_hour": 0.42,
+      "reliability": 0.992,
+      "dlperf": 81.3,
+      "performance_per_dollar": 193.57,
+      "verified": true,
+      "market_position_pct": -12.5,
+      "price_percentile": null
+    },
+    {
+      "id": "10000002",
+      "gpu_name": "RTX 4090",
+      "num_gpus": 2,
+      "gpu_ram_gb": 24,
+      "total_vram_gb": 48,
+      "region": "DE",
+      "price_per_hour": 0.95,
+      "reliability": 0.981,
+      "dlperf": 160.2,
+      "performance_per_dollar": 168.63,
+      "verified": true,
+      "market_position_pct": -1.0,
+      "price_percentile": null
+    },
+    {
+      "id": "10000003",
+      "gpu_name": "RTX 3090",
+      "num_gpus": 1,
+      "gpu_ram_gb": 24,
+      "total_vram_gb": 24,
+      "region": "US",
+      "price_per_hour": 0.21,
+      "reliability": 0.963,
+      "dlperf": 44.7,
+      "performance_per_dollar": 212.86,
+      "verified": false,
+      "market_position_pct": null,
+      "price_percentile": null
+    },
+    {
+      "id": "10000004",
+      "gpu_name": "A100 PCIE",
+      "num_gpus": 1,
+      "gpu_ram_gb": 40,
+      "total_vram_gb": 40,
+      "region": "CA",
+      "price_per_hour": 1.1,
+      "reliability": 0.999,
+      "dlperf": null,
+      "performance_per_dollar": null,
+      "verified": true,
+      "market_position_pct": null,
+      "price_percentile": null
+    }
+  ]
+}
