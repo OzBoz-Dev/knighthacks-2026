@@ -4,7 +4,7 @@ import { Button, Group, Table, Text, Title, UnstyledButton, VisuallyHidden } fro
 import { IconArrowDown, IconArrowUp, IconSelector } from "@tabler/icons-react";
 import type { Offer } from "@/lib/api/types";
 import { formatGb, formatPercent, formatUsdPerHour, MISSING, type PercentUnit } from "@/lib/format";
-import { nextSort } from "@/lib/explore/selectors";
+import { nextSort, TABLE_PAGE_SIZE, tableRowWindow } from "@/lib/explore/selectors";
 import type { TableSort, TableSortKey } from "@/lib/explore/types";
 import styles from "./explore.module.css";
 
@@ -33,19 +33,22 @@ function SortHeader({ label, sortKey, sort, onSort }: { label: string; sortKey: 
   );
 }
 
-export function OfferTable({ offers, reliabilityUnit, sort, onSort, onDetails }: {
+export function OfferTable({ offers, reliabilityUnit, sort, onSort, limit, onShowMore, onDetails }: {
   offers: readonly Offer[];
   reliabilityUnit: PercentUnit;
   sort: TableSort;
   onSort: (sort: TableSort) => void;
+  limit: number;
+  onShowMore: () => void;
   onDetails: (offer: Offer) => void;
 }) {
   if (!offers.length) return null;
+  const { shown, remaining } = tableRowWindow(offers.length, limit);
   return (
     <section aria-labelledby="offer-table-title">
       <Group justify="space-between" align="baseline" mb={8} gap="xs">
         <Title order={2} id="offer-table-title" fz={15} fw={600}>All offers</Title>
-        <Text fz={11} c="dimmed">{offers.length} offers match your filters</Text>
+        <Text fz={11} c="dimmed" role="status" aria-live="polite">Showing {shown} of {offers.length} offers that match your filters</Text>
       </Group>
       <Table.ScrollContainer minWidth={900} className={styles.tableFrame}>
         <Table highlightOnHover verticalSpacing={6} horizontalSpacing="sm" fz={12}>
@@ -69,7 +72,7 @@ export function OfferTable({ offers, reliabilityUnit, sort, onSort, onDetails }:
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {offers.map((offer) => (
+            {offers.slice(0, shown).map((offer) => (
               <Table.Tr key={offer.id} className={styles.offerRow} onClick={() => onDetails(offer)}>
                 <Table.Th scope="row" fw={600}>{offer.gpu_name}</Table.Th>
                 <Table.Td ta="right" className="tabular">{offer.num_gpus}</Table.Td>
@@ -96,6 +99,11 @@ export function OfferTable({ offers, reliabilityUnit, sort, onSort, onDetails }:
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+      {remaining > 0 && (
+        <Button variant="default" fullWidth className={styles.expandBar} onClick={onShowMore}>
+          Show {Math.min(TABLE_PAGE_SIZE, remaining)} more offers · {remaining} remaining
+        </Button>
+      )}
     </section>
   );
 }

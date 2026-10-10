@@ -5,7 +5,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, sortOffers, visibleModelOffers } from "@/lib/explore/selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
 import { ExploreToolbar } from "./explore-toolbar";
 import { MarketHeading } from "./market-hero";
 import { OfferFilters } from "./offer-filters";
@@ -31,11 +31,14 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
   const overview = useMemo(() => buildMarketOverview(offers, data?.history ?? []), [offers, data?.history]);
   const visibleCount = visibleModelOffers(representatives, expanded).length;
   const provenance = data?.provenance ?? { source: "unknown" as const, timestamp: null };
-  const changeFilters = (patch: Partial<Filters>) => { setFilters((current) => ({ ...current, ...patch })); setExpanded(false); };
-  const resetFilters = () => { setFilters({ ...DEFAULT_FILTERS }); setExpanded(false); };
+  const [rowLimit, setRowLimit] = useState(TABLE_PAGE_SIZE);
+  const collapse = () => { setExpanded(false); setRowLimit(TABLE_PAGE_SIZE); };
+  const changeFilters = (patch: Partial<Filters>) => { setFilters((current) => ({ ...current, ...patch })); collapse(); };
+  const resetFilters = () => { setFilters({ ...DEFAULT_FILTERS }); collapse(); };
+  const changeTableSort = (sort: TableSort) => { setTableSort(sort); setRowLimit(TABLE_PAGE_SIZE); };
   const jumpToCards = (patch: Partial<Filters>) => {
     setFilters({ ...DEFAULT_FILTERS, ...patch });
-    setExpanded(false);
+    collapse();
     document.getElementById("gpu-models-title")?.focus();
   };
 
@@ -64,7 +67,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           onReset={resetFilters}
         />
       </section>
-      <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={setTableSort} onDetails={setSelectedOffer} />
+      <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
       <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
       <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>

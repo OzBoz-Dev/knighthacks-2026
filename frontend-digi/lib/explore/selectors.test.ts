@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { sampleOffers, sampleHistory } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, nextSort, percentageChange, sortOffers, visibleModelOffers } from "./selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, nextSort, percentageChange, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+
+describe("tableRowWindow", () => {
+  it("shows up to the limit and counts the remaining rows", () => {
+    expect(tableRowWindow(0, TABLE_PAGE_SIZE)).toEqual({ shown: 0, remaining: 0 });
+    expect(tableRowWindow(49, TABLE_PAGE_SIZE)).toEqual({ shown: 49, remaining: 0 });
+    expect(tableRowWindow(50, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 0 });
+    expect(tableRowWindow(51, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 1 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 51 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE * 2)).toEqual({ shown: 100, remaining: 1 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE * 3)).toEqual({ shown: 101, remaining: 0 });
+  });
+});
 
 describe("sortOffers", () => {
   const base = sampleOffers[0];

@@ -74,6 +74,13 @@ export function sortOffers(offers: readonly Offer[], { key, direction }: TableSo
   });
 }
 
+export const TABLE_PAGE_SIZE = 50;
+
+export function tableRowWindow(total: number, limit: number) {
+  const shown = Math.min(total, limit);
+  return { shown, remaining: total - shown };
+}
+
 // Price starts cheapest first; reliability and value start best first.
 const FIRST_DIRECTION: Record<TableSortKey, TableSort["direction"]> = { price: "asc", reliability: "desc", performance: "desc" };
 
