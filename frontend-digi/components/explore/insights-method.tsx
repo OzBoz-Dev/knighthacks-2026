@@ -8,7 +8,11 @@ const GOLD_TABLES = [
   { name: "gold.gpu_market_summary", use: "the Lowest, Typical, and High cards" },
   { name: "gold.gpu_price_trends", use: "the median line and the 10th to 90th percentile band" },
   { name: "gold.offer_market_position", use: "the market position badge on each offer" },
+  { name: "gold.gpu_price_index", use: "the GPU index in the toolbar" },
 ];
+
+// The fixed basket from the method in databricks/README.md. A pull request changes it, never the data.
+const INDEX_BASKET = ["A100 PCIe", "A40", "H100 SXM", "L40S", "RTX 3090", "RTX 4090", "RTX A6000", "V100"];
 
 export function InsightsMethod({ provenance }: { provenance: Provenance }) {
   const fromDatabricks = provenance.source === "databricks-live" || provenance.source === "databricks-export";
@@ -37,6 +41,14 @@ export function InsightsMethod({ provenance }: { provenance: Provenance }) {
             <List.Item><b>High (p90):</b> 90% of the listings cost this much or less.</List.Item>
             <List.Item><b>Market position:</b> how far an offer is above or below the median price for the same GPU model. At least 15% below is a good price.</List.Item>
           </List>
+          <Text fz={12} fw={600} mb={4}>GPU index</Text>
+          <Text fz={12} mb={4}>
+            The index is the equal-weight average of the median single-GPU hourly price of each model in a fixed basket. Offers with more than one GPU are not used.
+          </Text>
+          <Text fz={12} mb={4}>Basket: {INDEX_BASKET.join(", ")}.</Text>
+          <Text fz={12} mb="sm">
+            If a basket model has no single-GPU offer in a snapshot, the index has no value for that snapshot. The basket never gets smaller to fill the gap.
+          </Text>
           {fromDatabricks
             ? <UpdatedAt value={provenance.timestamp} prefix="Latest Databricks update:" fz={11} />
             : <Text fz={11} c="dimmed">These insights are not from Databricks yet, so there is no Databricks update time.</Text>}
