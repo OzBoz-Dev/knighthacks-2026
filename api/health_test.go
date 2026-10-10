@@ -75,13 +75,13 @@ func TestDatabricksStatus(t *testing.T) {
 	up := medianQuerier{rows: [][]string{{"RTX 4090", "0.48"}}}
 	down := medianQuerier{err: errors.New("warehouse down")}
 	for _, tc := range []struct {
-		m    medianSource
+		m    *medianSource
 		want string
 	}{
-		{medianSource{live: up, export: export}, "ok"},
-		{medianSource{live: down, export: export}, "unavailable"},
-		{medianSource{export: export}, "fixture"},
-		{medianSource{}, "unavailable"},
+		{&medianSource{live: up, export: export}, "ok"},
+		{&medianSource{live: down, export: export}, "unavailable"},
+		{&medianSource{export: export}, "fixture"},
+		{&medianSource{}, "unavailable"},
 	} {
 		m, want := tc.m, tc.want
 		if got := m.status(context.Background()); got != want {
