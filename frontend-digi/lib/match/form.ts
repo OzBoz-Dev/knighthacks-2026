@@ -24,6 +24,16 @@ export const INITIAL_MATCH_VALUES: MatchFormValues = {
   priority: "balanced",
 };
 
+// The prd.md section 4 demo at 1:50. It clears the optional filters so the demo always checks every offer.
+export const DEMO_PRESET: MatchFormValues = {
+  minVram: 24,
+  maxPrice: 2,
+  minReliability: 95,
+  gpuNames: [],
+  region: null,
+  priority: "balanced",
+};
+
 const finite = (value: number | string) => (typeof value === "number" && Number.isFinite(value) ? value : null);
 
 // True when the form still builds exactly the request that produced the results on screen.

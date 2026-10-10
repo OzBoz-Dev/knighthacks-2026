@@ -1,11 +1,11 @@
 "use client";
 
-import { Alert, Stack, Text } from "@mantine/core";
+import { Alert, Button, Stack, Text } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { describeApiError } from "@/lib/api/client";
 import { getMatchOptions, postMatch } from "@/lib/api/match";
 import type { MatchRequest, MatchResponse } from "@/lib/api/types";
-import { buildMatchRequest, formMatchesRequest, INITIAL_MATCH_VALUES, type MatchFormErrors, type MatchFormField, type MatchFormValues } from "@/lib/match/form";
+import { buildMatchRequest, DEMO_PRESET, formMatchesRequest, INITIAL_MATCH_VALUES, type MatchFormErrors, type MatchFormField, type MatchFormValues } from "@/lib/match/form";
 import { createLatestRequest } from "@/lib/match/latest-request";
 import { ErrorState, LoadingState } from "@/components/shared/async-state";
 import { FIELD_IDS, MatchForm, type OptionsState } from "./match-form";
@@ -73,6 +73,7 @@ export function MatchWorkspace() {
         errors={errors}
         options={options}
         busy={match.status === "loading"}
+        actions={<Button type="button" variant="default" size="sm" onClick={() => change(DEMO_PRESET)}>Demo preset</Button>}
         onChange={change}
         onSubmit={submit}
         onRetryOptions={() => { setOptions({ status: "loading" }); setOptionsAttempt((n) => n + 1); }}

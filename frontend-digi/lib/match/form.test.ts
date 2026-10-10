@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildMatchRequest, formMatchesRequest, INITIAL_MATCH_VALUES } from "./form";
+import { buildMatchRequest, DEMO_PRESET, formMatchesRequest, INITIAL_MATCH_VALUES } from "./form";
 
 const valid = { ...INITIAL_MATCH_VALUES, minVram: 24, maxPrice: 2 };
+
+describe("DEMO_PRESET", () => {
+  it("fills 24 GB, $2/hour, 95% reliability, and Balanced with no optional filters", () => {
+    expect(buildMatchRequest(DEMO_PRESET).request).toEqual({ min_vram_gb: 24, max_price_per_hour: 2, min_reliability: 0.95, priority: "balanced" });
+  });
+
+  it("leaves every value editable after the preset", () => {
+    expect(buildMatchRequest({ ...DEMO_PRESET, maxPrice: 1.5, priority: "cheapest" }).request).toMatchObject({ max_price_per_hour: 1.5, priority: "cheapest" });
+  });
+});
 
 describe("formMatchesRequest", () => {
   it("is true only while the form still builds the submitted request", () => {
