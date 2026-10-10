@@ -156,10 +156,19 @@ func confirmReservation(db *sql.DB, chain solanaverify.TxGetter) http.HandlerFun
 		if !ok {
 			return
 		}
+		if res.Signature != nil && *res.Signature != body.Signature {
+			msg := "This reservation is already confirmed with another signature."
+			if res.Status == contract.StatusFailed {
+				msg = "This reservation already failed with another signature. Reserve the offer again."
+			}
+			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, msg)
+			return
+		}
 		if res.Status == contract.StatusConfirmed {
 			httpx.WriteJSON(w, http.StatusOK, confirmResponse{res, []string{}})
 			return
 		}
+		// A failed reservation runs the checks again only to name the failed checks. Its status stays.
 		ctx, cancel := context.WithTimeout(r.Context(), rpcTimeout)
 		defer cancel()
 		result, err := solanaverify.Verify(ctx, chain, body.Signature, expected(res))
@@ -168,18 +177,31 @@ func confirmReservation(db *sql.DB, chain solanaverify.TxGetter) http.HandlerFun
 			httpx.WriteError(w, http.StatusServiceUnavailable, httpx.CodeUpstreamUnavailable, "Solana devnet did not answer. Try again in a minute.")
 			return
 		}
+		// Devnet can return the transaction after the wallet reports it, so a missing transaction stays pending.
+		if res.Status == contract.StatusPending && !result.Checks[0].Passed { // Checks[0] is solanaverify.CheckExists
+			slog.Warn("confirm: transaction not found yet", "id", res.ID)
+			httpx.WriteError(w, http.StatusServiceUnavailable, httpx.CodeUpstreamUnavailable, "Solana devnet hasn't returned your transaction yet. Try again in a few seconds.")
+			return
+		}
 		failed := []string{}
 		for _, c := range result.Checks {
 			if !c.Passed {
 				failed = append(failed, c.Name)
 			}
 		}
-		if len(failed) == 0 {
+		switch {
+		case res.Status == contract.StatusFailed && len(failed) == 0:
+			// The checks of one transaction do not change, so devnet changed its answer. Never send an empty list here.
+			slog.Error("confirm: a failed reservation now passes every check", "id", res.ID)
+			httpx.WriteError(w, http.StatusServiceUnavailable, httpx.CodeUpstreamUnavailable, "Solana devnet gave a different result. Try again in a minute.")
+			return
+		case res.Status == contract.StatusFailed:
+		case len(failed) == 0:
 			err = store.MarkConfirmed(db, res.ID, body.Signature, *result.Slot)
-		} else {
-			err = store.MarkFailed(db, res.ID)
+		default:
+			err = store.MarkFailed(db, res.ID, body.Signature)
 		}
-		// ErrNotPending: the reservation already failed, or a second call marked it first. The stored status stays.
+		// ErrNotPending: a second call marked it first. The stored status stays.
 		if err != nil && !errors.Is(err, store.ErrNotPending) {
 			slog.Error("confirm: store", "id", res.ID, "err", err)
 			httpx.WriteError(w, http.StatusInternalServerError, httpx.CodeInternal, "The confirmation failed. Try again.")
@@ -246,7 +268,11 @@ func verifyReservation(db *sql.DB, chain solanaverify.TxGetter) http.HandlerFunc
 			return
 		}
 		if res.Signature == nil {
-			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, "This reservation has no signature yet. Sign and confirm it first.")
+			msg := "This reservation has no signature yet. Sign and confirm it first."
+			if res.Status == contract.StatusFailed { // a failed row from before the API stored the signature
+				msg = "This reservation failed verification. Reserve the offer again."
+			}
+			httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, msg)
 			return
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), rpcTimeout)

@@ -206,7 +206,7 @@ func TestConfirmReservationFailedCheck(t *testing.T) {
 	chain, _ := recordedRPC(t, "get_transaction_failed.json")
 	code, resp := confirm(t, db, chain, txResID, `{"signature":"`+txFailedSig+`"}`)
 	if code != http.StatusOK || resp.Status != contract.StatusFailed || len(resp.FailedChecks) != 1 || resp.FailedChecks[0] != "confirmed" ||
-		resp.Signature != nil {
+		resp.Signature == nil || *resp.Signature != txFailedSig || resp.Slot != nil {
 		t.Fatalf("status %d response %+v", code, resp)
 	}
 	if got, _ := store.Get(db, txResID); got.Status != contract.StatusFailed {
@@ -216,6 +216,30 @@ func TestConfirmReservationFailedCheck(t *testing.T) {
 	if code, again := confirm(t, db, chain, txResID, `{"signature":"`+txFailedSig+`"}`); code != http.StatusOK ||
 		again.Status != contract.StatusFailed || len(again.FailedChecks) != 1 {
 		t.Fatalf("repeat: status %d response %+v", code, again)
+	}
+	// Another signature cannot replace the rejected one.
+	if code, _ := confirm(t, db, chain, txResID, `{"signature":"`+txGoodSig+`"}`); code != http.StatusBadRequest {
+		t.Fatalf("another signature: status %d", code)
+	}
+}
+
+func TestConfirmReservationNotFoundYet(t *testing.T) {
+	db := pendingDB(t)
+	missing, _ := recordedRPC(t, "get_transaction_not_found.json")
+	if code, _ := confirm(t, db, missing, txResID, `{"signature":"`+txGoodSig+`"}`); code != http.StatusServiceUnavailable {
+		t.Fatalf("status %d, want 503", code)
+	}
+	if got, _ := store.Get(db, txResID); got.Status != contract.StatusPending {
+		t.Fatalf("a missing transaction must keep the reservation pending: %+v", got)
+	}
+	// The retry after devnet returns the transaction confirms it.
+	good, _ := recordedRPC(t, "get_transaction_good.json")
+	if code, resp := confirm(t, db, good, txResID, `{"signature":"`+txGoodSig+`"}`); code != http.StatusOK || resp.Status != contract.StatusConfirmed {
+		t.Fatalf("retry: status %d response %+v", code, resp)
+	}
+	// A confirmed reservation refuses another signature.
+	if code, _ := confirm(t, db, good, txResID, `{"signature":"`+txFailedSig+`"}`); code != http.StatusBadRequest {
+		t.Fatalf("another signature: status %d", code)
 	}
 }
 
@@ -337,8 +361,26 @@ func TestVerifyReservationErrors(t *testing.T) {
 	if code, body := verify(t, pending, good, txResID); code != http.StatusBadRequest || !strings.Contains(body, "no signature") {
 		t.Fatalf("no signature: %d %s", code, body)
 	}
-	store.MarkConfirmed(pending, txResID, txGoodSig, 418392215)
+	if err := store.MarkFailed(pending, txResID, txFailedSig); err != nil {
+		t.Fatal(err)
+	}
+	failedChain, _ := recordedRPC(t, "get_transaction_failed.json")
+	if code, body := verify(t, pending, failedChain, txResID); code != http.StatusOK || !strings.Contains(body, `"name":"confirmed","passed":false`) {
+		t.Fatalf("failed reservation: %d %s", code, body)
+	}
 	if code, body := verify(t, pending, down, txResID); code != http.StatusServiceUnavailable || !strings.Contains(body, `"upstream_unavailable"`) {
 		t.Fatalf("rpc down: %d %s", code, body)
+	}
+}
+
+func TestConfirmFailedReservationMissingTransaction(t *testing.T) {
+	db := pendingDB(t)
+	if err := store.MarkFailed(db, txResID, txFailedSig); err != nil {
+		t.Fatal(err)
+	}
+	missing, _ := recordedRPC(t, "get_transaction_not_found.json")
+	code, resp := confirm(t, db, missing, txResID, `{"signature":"`+txFailedSig+`"}`)
+	if code != http.StatusOK || resp.Status != contract.StatusFailed || len(resp.FailedChecks) == 0 {
+		t.Fatalf("a failed reservation must keep its status and name the failed checks: status %d response %+v", code, resp)
 	}
 }

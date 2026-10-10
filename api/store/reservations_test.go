@@ -84,13 +84,13 @@ func TestMarkConfirmedAndFailed(t *testing.T) {
 	if r.Status != contract.StatusConfirmed || r.Signature == nil || *r.Signature != "sig" || r.Slot == nil || *r.Slot != 42 {
 		t.Fatalf("confirmed = %+v", r)
 	}
-	if err := MarkFailed(db, "res_2"); err != nil {
+	if err := MarkFailed(db, "res_2", "sig_2"); err != nil {
 		t.Fatal(err)
 	}
-	if r, _ = Get(db, "res_2"); r.Status != contract.StatusFailed || r.Signature != nil {
+	if r, _ = Get(db, "res_2"); r.Status != contract.StatusFailed || r.Signature == nil || *r.Signature != "sig_2" || r.Slot != nil {
 		t.Fatalf("failed = %+v", r)
 	}
-	if err := MarkFailed(db, "missing"); !errors.Is(err, ErrNotFound) {
+	if err := MarkFailed(db, "missing", "sig"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -103,7 +103,7 @@ func TestMarkKeepsConfirmedReceipt(t *testing.T) {
 	if err := MarkConfirmed(db, "res_1", "sig", 42); err != nil {
 		t.Fatal(err)
 	}
-	if err := MarkFailed(db, "res_1"); !errors.Is(err, ErrNotPending) {
+	if err := MarkFailed(db, "res_1", "sig"); !errors.Is(err, ErrNotPending) {
 		t.Fatalf("MarkFailed err = %v", err)
 	}
 	if err := MarkConfirmed(db, "res_1", "other", 7); !errors.Is(err, ErrNotPending) {
