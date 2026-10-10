@@ -1,0 +1,31 @@
+{
+  "source": "dev-sample",
+  "captured_at": "2026-10-10T20:00:00Z",
+  "snapshot_id": "snap_20261010T200000Z",
+  "data": [
+    {
+      "timestamp": "2026-10-10T19:40:00Z",
+      "minimum_price": 0.3,
+      "median_price": 0.49,
+      "p10_price": 0.33,
+      "p90_price": 0.72,
+      "listing_count": 204
+    },
+    {
+      "timestamp": "2026-10-10T19:50:00Z",
+      "minimum_price": 0.29,
+      "median_price": 0.48,
+      "p10_price": 0.32,
+      "p90_price": 0.71,
+      "listing_count": 209
+    },
+    {
+      "timestamp": "2026-10-10T20:00:00Z",
+      "minimum_price": 0.29,
+      "median_price": 0.48,
+      "p10_price": 0.33,
+      "p90_price": 0.71,
+      "listing_count": 212
+    }
+  ]
+}
