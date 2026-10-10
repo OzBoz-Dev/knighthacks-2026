@@ -44,17 +44,7 @@ func createReservation(db *sql.DB, offers OfferLookup) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bad := func(msg string) { httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, msg) }
 		var req createReservationRequest
-		dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16))
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&req); err != nil {
-			switch {
-			case errors.As(err, new(*http.MaxBytesError)):
-				bad("The request body is too large.")
-			case strings.HasPrefix(err.Error(), "json: unknown field"):
-				bad("The request has a field that the API does not accept.")
-			default:
-				bad("The request body is not valid JSON.")
-			}
+		if !decodeBody(w, r, &req) {
 			return
 		}
 		switch {
@@ -81,7 +71,7 @@ func createReservation(db *sql.DB, offers OfferLookup) http.HandlerFunc {
 		if req.Region != nil && *req.Region == "" {
 			req.Region = nil
 		}
-		id, err := newReservationID()
+		id, err := newID("res_")
 		if err != nil {
 			slog.Error("reservation id", "err", err)
 			httpx.WriteError(w, http.StatusInternalServerError, httpx.CodeInternal, "The reservation failed. Try again.")
@@ -105,10 +95,34 @@ func createReservation(db *sql.DB, offers OfferLookup) http.HandlerFunc {
 	}
 }
 
-func newReservationID() (string, error) {
+// newID returns prefix and 16 random hex characters, for example res_8c1d2e3f4a5b6c7d.
+func newID(prefix string) (string, error) {
 	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return "res_" + hex.EncodeToString(b), nil
+	return prefix + hex.EncodeToString(b), nil
+}
+
+// decodeBody reads one JSON object of at most 64 KiB that has no unknown field.
+// On an error it writes the 400 response and returns false.
+func decodeBody(w http.ResponseWriter, r *http.Request, v any) bool {
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16))
+	dec.DisallowUnknownFields()
+	err := dec.Decode(v)
+	if err == nil {
+		return true
+	}
+	msg := "The request body is not valid JSON."
+	var typeErr *json.UnmarshalTypeError
+	switch {
+	case errors.As(err, new(*http.MaxBytesError)):
+		msg = "The request body is too large."
+	case strings.HasPrefix(err.Error(), "json: unknown field"):
+		msg = "The request has a field that the API does not accept."
+	case errors.As(err, &typeErr) && typeErr.Field != "":
+		msg = typeErr.Field + " has the wrong type."
+	}
+	httpx.WriteError(w, http.StatusBadRequest, httpx.CodeBadRequest, msg)
+	return false
 }
