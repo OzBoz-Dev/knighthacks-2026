@@ -27,7 +27,7 @@ type TxGetter interface {
 
 // Expected holds the values from the stored reservation that the memo must match.
 type Expected struct {
-	Prefix        string // the memo prefix, for example "CX1"
+	Prefix        string // the memo prefix, for example "SG1"
 	ReservationID string
 	Wallet        string // the reservation wallet, base58
 	PayloadHash   string
