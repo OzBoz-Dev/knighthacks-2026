@@ -77,10 +77,7 @@ func TestOffersFixtureMode(t *testing.T) {
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	src, err := newOfferSource(Config{UseVastFixture: true}, nil, path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := newOfferSource(Config{UseVastFixture: true}, nil, path)
 	code, env := getOffers(t, src)
 	if code != 200 || env.Source != contract.SourceVastSaved || env.CapturedAt != "2026-10-10T18:00:00Z" ||
 		*env.SnapshotID != "snap_20261010T180000Z" || env.Data == nil {
@@ -94,16 +91,20 @@ func TestOffersLiveDownServesSavedFile(t *testing.T) {
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	src, err := newOfferSource(Config{}, &stubFetcher{fail: true}, path)
-	if err != nil {
-		t.Fatal(err)
-	}
+	src := newOfferSource(Config{}, &stubFetcher{fail: true}, path)
 	code, env := getOffers(t, src)
 	if code != 200 || env.Source != contract.SourceVastSaved || env.CapturedAt != "2026-10-10T18:00:00Z" {
 		t.Fatalf("%d %+v", code, env)
 	}
 	// With no saved file the cache error becomes a 503.
-	src, _ = newOfferSource(Config{}, &stubFetcher{fail: true}, filepath.Join(t.TempDir(), "none.json"))
+	src = newOfferSource(Config{}, &stubFetcher{fail: true}, filepath.Join(t.TempDir(), "none.json"))
+	if code, _ := getOffers(t, src); code != 503 {
+		t.Fatalf("code = %d", code)
+	}
+}
+
+func TestOffersFixtureModeMissingFile(t *testing.T) {
+	src := newOfferSource(Config{UseVastFixture: true}, nil, filepath.Join(t.TempDir(), "none.json"))
 	if code, _ := getOffers(t, src); code != 503 {
 		t.Fatalf("code = %d", code)
 	}

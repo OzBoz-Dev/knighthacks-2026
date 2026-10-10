@@ -38,3 +38,9 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 func WriteError(w http.ResponseWriter, status int, code, message string) {
 	WriteJSON(w, status, ErrorBody{ErrorDetail{Code: code, Message: message}})
 }
+
+// NotFound answers a path that no route has, with the #26 error shape.
+// A wrong method on a known path also gets it, because the catch-all route matches every method.
+func NotFound(w http.ResponseWriter, _ *http.Request) {
+	WriteError(w, http.StatusNotFound, CodeNotFound, "No API endpoint has that path.")
+}

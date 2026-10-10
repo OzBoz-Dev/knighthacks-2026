@@ -16,17 +16,27 @@ const vastFixturePath = "../fixtures/vast_offers.json"
 
 // newOfferSource gives the saved fixture in fixture mode, and the 60 second cache otherwise.
 // In live mode a saved file, when it exists, answers while Vast.ai has no data.
-func newOfferSource(cfg Config, client vast.Fetcher, fixturePath string) (vast.Source, error) {
+// A missing fixture file in fixture mode does not stop the API: the offers answer 503.
+func newOfferSource(cfg Config, client vast.Fetcher, fixturePath string) vast.Source {
+	saved, err := vast.LoadFixture(fixturePath)
 	if cfg.UseVastFixture {
-		return vast.LoadFixture(fixturePath)
+		if err != nil {
+			slog.Warn("vast fixture unavailable, the offers answer 503", "err", err)
+			return failedSource{err}
+		}
+		return saved
 	}
 	live := vast.NewCache(client, time.Minute, time.Now)
-	saved, err := vast.LoadFixture(fixturePath)
 	if err != nil {
-		return live, nil
+		return live
 	}
-	return withSaved{live, saved}, nil
+	return withSaved{live, saved}
 }
+
+// failedSource always returns its error.
+type failedSource struct{ err error }
+
+func (f failedSource) Get(context.Context) (vast.Snapshot, error) { return vast.Snapshot{}, f.err }
 
 type withSaved struct {
 	live  vast.Source

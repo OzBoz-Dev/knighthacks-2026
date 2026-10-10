@@ -60,6 +60,7 @@ func (s *recentSnapshots) Offer(snapshotID, offerID string) (contract.Offer, boo
 
 // vastStatus gives the vast component status from the last Get, with no Vast.ai call.
 // A call to the cache from here could store a timeout as a failed refresh for the whole TTL.
+// shortcut: the status only changes on offers or match traffic, upgrade with a status from the collector ticker if health must be fresh with no traffic.
 func (s *recentSnapshots) vastStatus() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()

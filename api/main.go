@@ -13,6 +13,7 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/collector"
+	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/vast"
 )
@@ -36,15 +37,11 @@ func main() {
 	defer db.Close()
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", httpx.NotFound)
 	medians := registerMarket(mux, cfg)
 
 	vastClient := vast.NewClient(cfg.VastAPIKey)
-	source, err := newOfferSource(cfg, vastClient, vastFixturePath)
-	if err != nil {
-		slog.Error("vast fixture", "err", err)
-		os.Exit(1)
-	}
-	offers := newRecentSnapshots(source)
+	offers := newRecentSnapshots(newOfferSource(cfg, vastClient, vastFixturePath))
 	go offers.Get(context.Background()) // fills the vast health status at start
 	mux.HandleFunc("GET /api/health", healthHandler(healthChecks{cfg.UseVastFixture, cfg.UseDatabricksFixture, offers.vastStatus, medians.status, pingSQLite(db)}))
 	mux.Handle("POST /api/reservations", createReservation(db, offers))
