@@ -19,7 +19,7 @@ first rehearsal. The table "Numbers to fill in" at the end lists them.
   once in the My Reservations block.
 - Confirm the pre-demo checklist in `prd.md` section 13: Phantom is unlocked and on devnet, the
   SQL warehouse is awake, and the Databricks gold table and Solana Explorer are open in tabs.
-- Select the demo GPU before the demo: {{NUMBER: demo GPU model with at least three eligible offers at 24 GB and $2/hour}}.
+- Select the demo GPU before the demo: RTX 4090.
 
 ## 0:00-0:30 Explore: open
 
@@ -37,9 +37,9 @@ that market easy to compare. What you see is {{NUMBER: data source label shown o
 
 Action:
 
-1. Set the GPU model filter to {{NUMBER: demo GPU model}}.
+1. Set the GPU model filter to RTX 4090.
 2. Set the minimum VRAM to 24 GB.
-3. Set the region filter to {{NUMBER: demo region with the most offers for the demo GPU}}.
+3. Set the region filter to US.
 4. Set the maximum hourly price to $2/hour.
 5. Point at the Lowest, Typical, High, and Listing count cards.
 6. Point at the trend chart and its update time.
@@ -47,12 +47,10 @@ Action:
 
 Say:
 
-"This is {{NUMBER: data source label shown on Explore}}. We filter to {{NUMBER: demo GPU model}}
-with 24 GB and a $2 budget. Right now the lowest price is {{NUMBER: Lowest card value}}, the
-typical price is {{NUMBER: Typical card value}}, and the high end is {{NUMBER: High card value}}
-across {{NUMBER: Listing count card value}} offers. The cards and this trend chart come from
-Databricks, updated at {{NUMBER: Databricks insights update time on Explore}}. This badge says
-the offer is {{NUMBER: percent below median on the badged offer}} below the typical price for
+"This is {{NUMBER: data source label shown on Explore}}. We filter to RTX 4090 with 24 GB and
+a $2 budget. Right now the lowest price is $0.15/hour, the typical price is $0.54/hour, and the
+high end is $0.90/hour across 36 offers. The cards and this trend chart come from Databricks,
+updated at 2026-10-10 23:37 UTC. This badge says the offer is 72% below the typical price for
 this model. That's a real benchmark, not a guess."
 
 ## 1:50-3:15 Match: ranked recommendations
@@ -73,10 +71,9 @@ Say:
 {{NUMBER: checked offer count from the Match summary}} offers and
 {{NUMBER: eligible offer count from the Match summary}} meet the requirements. Budget removed {{NUMBER: budget exclusion count}} and VRAM removed
 {{NUMBER: VRAM exclusion count}}. The top option is a {{NUMBER: GPU model of the top match}} at
-{{NUMBER: hourly price of the top match}}. It meets the memory requirement, it's
-{{NUMBER: percent below the typical price for the top match}} below the typical price for this
-model, and it has {{NUMBER: reliability of the top match}} reliability. Every explanation is a
-rule you can read, so the same market and the same request always give the same order."
+{{NUMBER: hourly price of the top match}}. It meets the memory requirement, it's 28% below the
+typical price for this model, and it has 97.6% reliability. Every explanation is a rule you can
+read, so the same market and the same request always give the same order."
 
 ## 3:15-3:40 Databricks proof
 
@@ -91,9 +88,8 @@ Say:
 
 "Every point in the chart and every market comparison comes from this snapshot pipeline. We
 collect Vast.ai offers every 10 minutes, clean them in Databricks, and publish price benchmarks.
-This run holds {{NUMBER: snapshot count in Databricks}} snapshots and
-{{NUMBER: silver offer row count}} cleaned offers, and the last snapshot was at
-{{NUMBER: latest snapshot time in gold.gpu_market_summary}}."
+This run holds 8 snapshots and 10226 cleaned offers, and the last snapshot was at
+2026-10-10 23:37:28 UTC."
 
 ## 3:40-4:50 My Reservations: reserve the top match
 
@@ -198,33 +194,36 @@ return the same order."
 
 ## Numbers to fill in
 
-Issue #142 fills the Source and Capture time columns.
+Issue #142 fills the Source and Capture time columns. The gold values come from the snapshot
+`20261010T233728Z`, the latest in the gold tables at the time of capture. Refresh them from the
+same queries if the pipeline runs again before the demo. The rows that still hold a marker need
+the running app with the Vast.ai key in `api/.env`.
 
-| Marker | Source | Capture time |
-|---|---|---|
-| demo GPU model with at least three eligible offers at 24 GB and $2/hour | | |
-| demo GPU model | | |
-| data source label shown on Explore | | |
-| demo region with the most offers for the demo GPU | | |
-| Lowest card value | | |
-| Typical card value | | |
-| High card value | | |
-| Listing count card value | | |
-| Databricks insights update time on Explore | | |
-| percent below median on the badged offer | | |
-| checked offer count from the Match summary | | |
-| eligible offer count from the Match summary | | |
-| budget exclusion count | | |
-| VRAM exclusion count | | |
-| GPU model of the top match | | |
-| hourly price of the top match | | |
-| percent below the typical price for the top match | | |
-| reliability of the top match | | |
-| snapshot count in Databricks | | |
-| silver offer row count | | |
-| latest snapshot time in gold.gpu_market_summary | | |
-| quoted hourly price on the reservation card | | |
-| confirmation timestamp on the receipt | | |
+| Marker | Value | Source | Capture time |
+|---|---|---|---|
+| demo GPU model with at least three eligible offers at 24 GB and $2/hour | RTX 4090 | `solgpu.gold.offer_market_position`: three offers at 24 GB and at most $2/hour (ids 54083016, 54464707, 55298856) | 2026-10-10 23:37:28 UTC |
+| demo GPU model | RTX 4090 | `solgpu.gold.gpu_market_summary`: 36 listings, the most among 24 GB cards | 2026-10-10 23:37:28 UTC |
+| data source label shown on Explore | marker | app: `/api/offers` | fill on the demo laptop (needs the Vast.ai key) |
+| demo region with the most offers for the demo GPU | US | `solgpu.gold.gpu_price_trends`: region US holds 18 of the 36 RTX 4090 listings | 2026-10-10 23:37:28 UTC |
+| Lowest card value | $0.15/hour | `solgpu.gold.gpu_market_summary.lowest_price` = 0.1487 | 2026-10-10 23:37:28 UTC |
+| Typical card value | $0.54/hour | `solgpu.gold.gpu_market_summary.median_price` = 0.5389 | 2026-10-10 23:37:28 UTC |
+| High card value | $0.90/hour | `solgpu.gold.gpu_market_summary.p90_price` = 0.8961 | 2026-10-10 23:37:28 UTC |
+| Listing count card value | 36 | `solgpu.gold.gpu_market_summary.listing_count` | 2026-10-10 23:37:28 UTC |
+| Databricks insights update time on Explore | 2026-10-10 23:37 UTC | `solgpu.gold.gpu_market_summary.updated_at` (the app formats the same value) | 2026-10-10 23:37:28 UTC |
+| percent below median on the badged offer | 72% | `solgpu.gold.offer_market_position.market_position_pct` = -72.4 for offer 54083016 (RTX 4090, US, $0.15/hour) | 2026-10-10 23:37:28 UTC |
+| checked offer count from the Match summary | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| eligible offer count from the Match summary | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| budget exclusion count | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| VRAM exclusion count | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| GPU model of the top match | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| hourly price of the top match | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
+| percent below the typical price for the top match | 28% | `solgpu.gold.offer_market_position.market_position_pct` = -27.8 for offer 54464707, the cheapest RTX 4090 at 24 GB, at most $2/hour, and at least 95% reliability (check against the live Match result before the demo) | 2026-10-10 23:37:28 UTC |
+| reliability of the top match | 97.6% | `solgpu.silver.offers.reliability` = 0.9759 for offer 54464707 (check against the live Match result before the demo) | 2026-10-10 23:37:28 UTC |
+| snapshot count in Databricks | 8 | `solgpu.gold.gpu_price_trends`: `count(DISTINCT timestamp)`, the same as `solgpu.bronze.vast_offers_raw` | 2026-10-10 23:37:28 UTC |
+| silver offer row count | 10226 | `solgpu.silver.offers`: `count(*)` across the 8 snapshots | 2026-10-10 23:37:28 UTC |
+| latest snapshot time in gold.gpu_market_summary | 2026-10-10 23:37:28 UTC | `solgpu.gold.gpu_market_summary`: `max(updated_at)` | 2026-10-10 23:37:28 UTC |
+| quoted hourly price on the reservation card | marker | app: Phantom reservation card | fill on the demo laptop (needs the Vast.ai key) |
+| confirmation timestamp on the receipt | marker | Solana Explorer | fill on the demo laptop (needs the Vast.ai key) |
 
 ## Rehearsal log
 
