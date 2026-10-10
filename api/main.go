@@ -29,7 +29,7 @@ func main() {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(mux)), ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

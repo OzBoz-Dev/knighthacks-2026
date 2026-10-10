@@ -47,3 +47,44 @@ func TestLoggingWritesOneLine(t *testing.T) {
 		t.Fatalf("log = %q", line)
 	}
 }
+
+func TestCORS(t *testing.T) {
+	const web = "http://localhost:3000"
+	h := withCORS(web, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+
+	t.Run("web origin", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/offers", nil)
+		req.Header.Set("Origin", web)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != web {
+			t.Fatalf("allow origin = %q", got)
+		}
+	})
+
+	t.Run("other origin", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/offers", nil)
+		req.Header.Set("Origin", "https://evil.example")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		for k := range rec.Header() {
+			if strings.HasPrefix(k, "Access-Control-") {
+				t.Fatalf("unexpected CORS header %s", k)
+			}
+		}
+	})
+
+	t.Run("preflight", func(t *testing.T) {
+		req := httptest.NewRequest("OPTIONS", "/api/match", nil)
+		req.Header.Set("Origin", web)
+		req.Header.Set("Access-Control-Request-Method", "POST")
+		req.Header.Set("Access-Control-Request-Headers", "content-type")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNoContent ||
+			rec.Header().Get("Access-Control-Allow-Methods") != "GET, POST" ||
+			rec.Header().Get("Access-Control-Allow-Headers") != "Content-Type" {
+			t.Fatalf("preflight = %d %v", rec.Code, rec.Header())
+		}
+	})
+}

@@ -43,3 +43,24 @@ func withRecovery(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// withCORS allows browser requests from the web origin only.
+// A preflight from that origin gets 204. A request from another origin gets no CORS headers.
+func withCORS(origin string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Vary", "Origin")
+		if r.Header.Get("Origin") != origin {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
