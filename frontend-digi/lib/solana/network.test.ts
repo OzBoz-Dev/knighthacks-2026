@@ -6,8 +6,8 @@ afterEach(() => {
 });
 
 describe("getSolanaConfig", () => {
-  it("falls back to the public devnet endpoint", () => {
-    vi.stubEnv("NEXT_PUBLIC_SOLANA_RPC", "");
+  it.each([undefined, "", "   "])("falls back to the public devnet endpoint for %j", (value) => {
+    vi.stubEnv("NEXT_PUBLIC_SOLANA_RPC", value);
     expect(getSolanaConfig()).toEqual({
       endpoint: "https://api.devnet.solana.com",
       cluster: "devnet",
@@ -21,7 +21,8 @@ describe("getSolanaConfig", () => {
   });
 
   it("refuses a mainnet URL in any case", () => {
-    vi.stubEnv("NEXT_PUBLIC_SOLANA_RPC", "https://api.Mainnet-Beta.solana.com");
+    vi.stubEnv("NEXT_PUBLIC_SOLANA_RPC", "https://api.Mainnet-Beta.solana.com/?api-key=secret");
     expect(() => getSolanaConfig()).toThrow(/devnet only/);
+    expect(() => getSolanaConfig()).not.toThrow(/secret/);
   });
 });
