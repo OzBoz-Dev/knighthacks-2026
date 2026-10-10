@@ -7,7 +7,7 @@ import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
 import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
 import { ExploreToolbar } from "./explore-toolbar";
-import { MarketHeading } from "./market-hero";
+import { RegionMarket } from "./region-market";
 import { OfferFilters } from "./offer-filters";
 import { GpuOfferGrid } from "./gpu-offer-grid";
 import { OfferDetailsDrawer } from "./offer-details-drawer";
@@ -46,7 +46,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
   return (
     <Stack gap={12} className={styles.dashboard}>
       <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={!!data} />
-      <MarketHeading provenance={provenance} sample={!!data} start={overview.start} end={overview.end} />
+      <RegionMarket offers={offers} history={data?.history ?? []} provenance={provenance} model={filters.model} region={filters.region} onModel={(model) => changeFilters({ model })} onRegion={(region) => changeFilters({ region })} onDetails={setSelectedOffer} />
       <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
       <section aria-labelledby="gpu-models-title">
         <Group justify="space-between" mb={8} gap="xs">

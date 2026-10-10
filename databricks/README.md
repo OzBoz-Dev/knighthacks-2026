@@ -121,6 +121,76 @@ snapshot files. A direct path would mean: a scheduled notebook writes the snapsh
 volume itself, no laptop, no upload step. The public endpoint caps at 64 offers per query, so a
 direct notebook would need the Vast.ai key as a Databricks secret to get the full inventory.
 
+## Vast.ai field units
+
+Issue #72. Every number below comes from `solgpu.bronze.vast_offers_raw`, 2407 rows over two
+snapshots: `20261010T211605Z` (2026-10-10T21:16:05Z, 1100 rows) and `20261010T211616Z`
+(2026-10-10T21:16:16Z, 1307 rows). The silver notebook (#76) applies the rule in the last column.
+
+| Field | Unit or shape | Range seen in bronze | Silver rule |
+|---|---|---|---|
+| `id` | integer offer id | 0 nulls | store as string `offer_id` |
+| `gpu_name` | string, free text | 61 distinct names, 0 nulls | keep as is, #81 maps it to a canonical name |
+| `num_gpus` | integer | 1 to 14 | keep as is |
+| `gpu_ram` | MB per GPU | 3072 to 183359, 0 nulls | `gpu_ram_gb = round(gpu_ram / 1024, 0)` |
+| `gpu_total_ram` | MB for the whole offer | equals `gpu_ram * num_gpus` in 2407 of 2407 rows | compute `total_vram_gb = gpu_ram_gb * num_gpus` |
+| `dph_total` | USD per hour for the whole offer | 0.0296 to 160.0074, 0 nulls, 0 nonpositive | `price_per_hour` |
+| `reliability2` | ratio 0 to 1 | 0.5443 to 0.9997, 0 nulls | `reliability`. `reliability` in the raw row holds the same value in 2407 of 2407 rows, silver reads `reliability2` |
+| `geolocation` | string `"Region, CC"` | 129 distinct values, 0 nulls, 0 without the `, CC` suffix | `region` = the two-letter code after the last comma, `unknown` when absent, #81 maps it |
+| `dlperf` | float, per machine | 1.0 to 5161.1, 0 nulls | keep as is, nullable |
+| `verification` | string | `verified` 1111, `unverified` 667, `deverified` 629 | `verified = (verification = 'verified')`. The raw `verified` key is null in 2407 of 2407 rows |
+
+Why 1024 for `gpu_ram`: a 24 GB card reports 24564 MB (RTX 4090) or 24576 MB (RTX 3090), and both
+round to 24 GB. An 80 GB card reports 81559 MB (H100 SXM) or 81920 MB (A100 SXM4), and both round
+to 80 GB. Division by 1000 gives 25 GB and 82 GB, which no card has. Known limit: the rounded
+value is below the marketing number for some cards (A40 46068 MB gives 45 GB, L4 23034 MB gives
+22 GB, H200 143771 MB gives 140 GB, B200 183359 MB gives 179 GB). Silver stores the rounded value.
+
+Why `dlperf` is per machine: the median RTX 4090 `dlperf` grows with `num_gpus`. Groups with fewer
+than 20 rows are left out.
+
+| `num_gpus` | rows | median `dlperf` | median `dlperf / num_gpus` |
+|---:|---:|---:|---:|
+| 1 | 70 | 97.0 | 97.0 |
+| 2 | 50 | 175.5 | 87.8 |
+| 4 | 35 | 298.2 | 74.6 |
+| 8 | 23 | 404.0 | 50.5 |
+
+The same values appear in the #37 comment from the public feed (1x RTX 4090 about 97, 2x about
+162, 4x about 292 to 300). The ranking rule in #37 stands: silver and gold use `dlperf` as Vast.ai
+reports it and do not divide by `num_gpus`.
+
+`api/NOTES.md` (#94) does not exist yet. P2 must confirm these units there; if they differ, the
+silver notebook changes, not this table.
+
+## Pipeline job
+
+Issue #116. The job `solgpu-pipeline` (job id `119782616481942`) runs every 10 minutes at :05,
+:15, :25 and so on, UTC, 5 minutes after the collector writes a file. This is the orchestration
+the team decision in #39 proposes. The definition is `databricks/jobs/pipeline.json`, the body
+for `POST /api/2.2/jobs/create`. Each task runs on serverless compute; the SQL tasks use the
+Serverless Starter Warehouse. The tasks run in one linear chain, so a failed task stops every
+task after it:
+
+1. `bronze_ingest`: notebook `01_bronze_ingest`, COPY INTO from the volume.
+2. `name_maps`: SQL file `20_name_maps.sql`.
+3. `silver_offers`: notebook `02_silver_offers`.
+4. `data_quality`: notebook `03_data_quality`.
+5. `gold_market_summary`: SQL file `30_gold_market_summary.sql`.
+6. `gold_price_trends`: SQL file `31_gold_price_trends.sql`.
+7. `gold_offer_market_position`: SQL file `32_gold_offer_market_position.sql`.
+
+The data_quality task fails on purpose when silver is stale, which stops the gold tasks.
+
+To deploy or update: import the three notebooks to `/Shared/solgpu/<stem>` (Workspace API,
+`format: SOURCE`, `language: PYTHON`) and the four SQL files to `/Shared/solgpu/sql/<name>.sql`
+(`format: AUTO`). Then `POST /api/2.2/jobs/create` with `pipeline.json` for a new job, or
+`POST /api/2.2/jobs/reset` with `{"job_id": 119782616481942, "new_settings": <pipeline.json>}`
+to update the existing one. To run it by hand: Workflows, `solgpu-pipeline`, Run now, or
+`POST /api/2.2/jobs/run-now` with the job id. A failure shows on the run page in Workflows: the
+failed task is red and the tasks after it show Upstream failed. Every task is idempotent, so a
+repair run or the next scheduled run is safe.
+
 ## Offer value score
 
 The gold table `gold.offer_market_position` holds one value score for each offer in the latest
