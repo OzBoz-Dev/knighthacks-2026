@@ -21,7 +21,8 @@ type rawOffer struct {
 	OldRelia    *float64    `json:"reliability"`
 	Geolocation string      `json:"geolocation"`
 	DLPerf      *float64    `json:"dlperf"`
-	Verified    bool        `json:"verified"`
+	// The raw "verified" key is null in every real offer (#72), so the API reads "verification".
+	Verification string `json:"verification"`
 }
 
 // Drop reasons. Normalize counts each one.
@@ -64,7 +65,7 @@ func toOffer(raw json.RawMessage) (contract.Offer, error) {
 		PricePerHour: r.DPHTotal,
 		Reliability:  *relia,
 		DLPerf:       r.DLPerf,
-		Verified:     r.Verified,
+		Verified:     r.Verification == "verified",
 	}
 	if r.DLPerf != nil {
 		v := *r.DLPerf / r.DPHTotal

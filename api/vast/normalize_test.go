@@ -50,6 +50,15 @@ func TestNormalizeMapping(t *testing.T) {
 	}
 }
 
+func TestNormalizeVerified(t *testing.T) {
+	for in, want := range map[string]bool{"verified": true, "unverified": false, "deverified": false, "": false} {
+		got, _ := Normalize([]json.RawMessage{raw(`{"id":1,"gpu_name":"RTX 4090","num_gpus":1,"gpu_ram":24564,"dph_total":0.5,"reliability2":0.99,"geolocation":"US","verified":null,"verification":"` + in + `"}`)})
+		if len(got) != 1 || got[0].Verified != want {
+			t.Errorf("verification %q: got %+v, want verified %v", in, got, want)
+		}
+	}
+}
+
 func TestNormalizeDrops(t *testing.T) {
 	ok := `"gpu_name":"RTX 4090","num_gpus":1,"gpu_ram":24576,"dph_total":0.5,"reliability2":0.9`
 	got, drops := Normalize([]json.RawMessage{
