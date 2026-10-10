@@ -86,3 +86,85 @@ The SQL in `databricks/sql/32_gold_offer_market_position.sql` (issue #111) imple
 The dashboard and the PRD link to this section.
 
 Open for P2 review: confirm this does not contradict `/api/match` (issue #12).
+
+## GPU price index method (for team review in #29)
+
+Proposed. The team decides in #29 whether to keep the index. Until Databricks calculates it,
+Explore must not show it as a live benchmark.
+
+### Basket
+
+The basket is a fixed list of canonical GPU model names with equal weight. It is the basket
+Explore shows today: `frontend-digi/lib/explore/selectors.ts` takes every model with a single-GPU
+offer in the sample snapshot, so the sample basket is the eight models in
+`frontend-digi/lib/data/dev-fixtures.ts`:
+
+`A100 PCIe`, `A40`, `H100 SXM`, `L40S`, `RTX 3090`, `RTX 4090`, `RTX A6000`, `V100`
+
+Risk: `V100`, `A40`, and `RTX A6000` can be rare as single-GPU offers on Vast.ai. Keep them for the
+review. A missing model gives a null point, as the rule below says. The basket is a constant in
+the SQL, a `VALUES` list. A pull request changes it. The SQL never derives it from the data.
+
+### Input
+
+For each snapshot and each basket model, the model median is the median `price_per_hour` over
+`silver.offers` rows where `gpu_name` equals the canonical model and `num_gpus = 1`. Single-GPU
+offers only, so a multi-GPU machine price does not skew the model median. This is the same median
+that the `gold.gpu_price_trends` row with `region = 'all'` gives if that table is restricted to
+`num_gpus = 1`. If the trends table is not restricted that way, the index computes its own median
+from silver. Issue #155 must check this dependency before it reads from the trends table.
+
+### Formula
+
+```text
+model_median   = median(price_per_hour) over single-GPU offers of one basket model in one snapshot
+basket_size    = number of models in the basket constant
+models_present = number of basket models with at least one single-GPU offer in the snapshot
+index_value    = AVG(model_median) over the basket models, only when models_present = basket_size
+```
+
+The unit of `index_value` is USD per hour. One row per `snapshot_id` and `captured_at`.
+
+### Missing-model rule
+
+If any basket model has no single-GPU offer in a snapshot, `index_value` is NULL for that snapshot.
+The row still exists with `models_present < basket_size`, so the chart shows a gap, not a different
+basket and not a carried-forward value. Never substitute a multi-GPU price, a previous snapshot, or
+a smaller basket.
+
+### Minimum listing rule (proposal)
+
+Proposal: `models_present` counts a model only if it has at least 3 single-GPU offers in the
+snapshot. One outlier offer then does not move the index. The team accepts or rejects this rule in
+#29. Without it, one offer sets the model median.
+
+### Determinism
+
+The same silver snapshot in gives the same index out. The SQL uses `PERCENTILE_CONT(0.5) WITHIN
+GROUP (ORDER BY price_per_hour)`. It interpolates between the two middle values for an even count,
+the same as the browser `median` helper, and it is deterministic for a fixed input.
+
+### What the app would show
+
+The source label is `Databricks insights updated at {captured_at}`. The index tooltip names the
+basket and says "equal-weight mean of median single-GPU hourly prices".
+
+### Worked example
+
+Example inputs, not market data. A 3-model basket: `H100 SXM`, `RTX 4090`, `L40S`.
+
+| Snapshot | `H100 SXM` median | `RTX 4090` median | `L40S` median | `models_present` | `index_value` |
+|---|---:|---:|---:|---:|---:|
+| 1 | 2.00 | 0.86 | 1.29 | 3 of 3 | 1.3833 |
+| 2 | 2.00 | 0.86 | no single-GPU offer | 2 of 3 | NULL |
+
+Snapshot 1: `(2.00 + 0.86 + 1.29) / 3 = 4.15 / 3 = 1.3833`. Snapshot 2: the row exists, the value
+is NULL, the basket stays at 3 models.
+
+### Cost if kept, cost if removed
+
+- Kept: the #155 SQL for `gold.gpu_price_index` (small, on top of silver), an API endpoint (P2), a
+  `prd.md` section 3 entry, and the insights panel text (#200).
+- Removed: delete the index readout from `frontend-digi/components/explore/` (#201).
+
+The recommendation is in the #29 comment, not here.
