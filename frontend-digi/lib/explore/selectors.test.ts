@@ -1,6 +1,29 @@
 import { describe, expect, it } from "vitest";
 import { sampleOffers, sampleHistory } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, nextSort, percentageChange, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+
+describe("largestExclusion", () => {
+  it("returns null when no filter is active", () => {
+    expect(largestExclusion(sampleOffers, DEFAULT_FILTERS, "ratio")).toBeNull();
+  });
+
+  it("counts the offers that one filter removes", () => {
+    const removed = sampleOffers.filter((o) => o.price_per_hour > 0.5).length;
+    expect(largestExclusion(sampleOffers, { ...DEFAULT_FILTERS, maxPrice: 0.5 }, "ratio")).toEqual({ label: "Max price", count: removed });
+  });
+
+  it("names the filter that removes the most offers when two are active", () => {
+    const filters = { ...DEFAULT_FILTERS, maxPrice: 0.1, verifiedOnly: true };
+    expect(filterOffers(sampleOffers, filters, "ratio")).toEqual([]);
+    expect(largestExclusion(sampleOffers, filters, "ratio")).toEqual({ label: "Max price", count: sampleOffers.length });
+  });
+
+  it("picks the earlier filter in the fixed order when counts are equal", () => {
+    const base = sampleOffers[0];
+    const offers = [{ ...base, id: "x", region: "US West", verified: false }];
+    expect(largestExclusion(offers, { ...DEFAULT_FILTERS, region: "EU Central", verifiedOnly: true }, "ratio")).toEqual({ label: "Region", count: 1 });
+  });
+});
 
 describe("tableRowWindow", () => {
   it("shows up to the limit and counts the remaining rows", () => {

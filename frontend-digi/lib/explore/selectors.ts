@@ -22,18 +22,39 @@ const featuredRank = (name: string) => {
   return index < 0 ? FEATURED_MODELS.length : index;
 };
 
+type FilterCheck = {
+  label: string;
+  active: (filters: OfferFilters) => boolean;
+  passes: (offer: Offer, filters: OfferFilters, reliabilityUnit: PercentUnit) => boolean;
+};
+
+const searchTerm = (filters: OfferFilters) => filters.search.trim().toLowerCase();
+
+// The order is also the tie-break order for the exclusion summary.
+const FILTER_CHECKS: FilterCheck[] = [
+  { label: "Search", active: (f) => !!searchTerm(f), passes: (o, f) => `${o.gpu_name} ${o.region}`.toLowerCase().includes(searchTerm(f)) },
+  { label: "GPU model", active: (f) => !!f.model, passes: (o, f) => o.gpu_name === f.model },
+  { label: "Region", active: (f) => !!f.region, passes: (o, f) => o.region === f.region },
+  { label: "Min VRAM", active: (f) => f.minVram !== null, passes: (o, f) => o.total_vram_gb >= f.minVram! },
+  { label: "Max price", active: (f) => f.maxPrice !== null, passes: (o, f) => o.price_per_hour <= f.maxPrice! },
+  { label: "Min reliability", active: (f) => f.minReliability !== null, passes: (o, f, unit) => o.reliability * (unit === "ratio" ? 100 : 1) >= f.minReliability! },
+  { label: "Verified only", active: (f) => f.verifiedOnly, passes: (o) => o.verified },
+];
+
 export function filterOffers(offers: readonly Offer[], filters: OfferFilters, reliabilityUnit: PercentUnit): Offer[] {
-  const search = filters.search.trim().toLowerCase();
-  return offers.filter((offer) => {
-    const reliability = offer.reliability * (reliabilityUnit === "ratio" ? 100 : 1);
-    return (!search || `${offer.gpu_name} ${offer.region}`.toLowerCase().includes(search))
-      && (!filters.model || offer.gpu_name === filters.model)
-      && (!filters.region || offer.region === filters.region)
-      && (filters.minVram === null || offer.total_vram_gb >= filters.minVram)
-      && (filters.maxPrice === null || offer.price_per_hour <= filters.maxPrice)
-      && (filters.minReliability === null || reliability >= filters.minReliability)
-      && (!filters.verifiedOnly || offer.verified);
-  });
+  const checks = FILTER_CHECKS.filter((check) => check.active(filters));
+  return offers.filter((offer) => checks.every((check) => check.passes(offer, filters, reliabilityUnit)));
+}
+
+// Each active filter is counted alone against all offers, so the counts can add up to more than the total.
+export function largestExclusion(offers: readonly Offer[], filters: OfferFilters, reliabilityUnit: PercentUnit): { label: string; count: number } | null {
+  let largest: { label: string; count: number } | null = null;
+  for (const check of FILTER_CHECKS) {
+    if (!check.active(filters)) continue;
+    const count = offers.filter((offer) => !check.passes(offer, filters, reliabilityUnit)).length;
+    if (!largest || count > largest.count) largest = { label: check.label, count };
+  }
+  return largest;
 }
 
 export function getModelOffers(offers: readonly Offer[], filters: OfferFilters, reliabilityUnit: PercentUnit): Offer[] {

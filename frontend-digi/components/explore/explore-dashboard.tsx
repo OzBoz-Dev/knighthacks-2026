@@ -5,7 +5,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
 import { ExploreToolbar } from "./explore-toolbar";
 import { MarketHeading } from "./market-hero";
 import { OfferFilters } from "./offer-filters";
@@ -62,6 +62,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           reliabilityUnit={reliabilityUnit}
           expanded={expanded}
           hasData={!!data}
+          exclusion={representatives.length ? null : largestExclusion(offers, filters, reliabilityUnit)}
           onToggle={() => setExpanded((value) => !value)}
           onDetails={setSelectedOffer}
           onReset={resetFilters}

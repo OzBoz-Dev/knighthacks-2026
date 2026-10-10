@@ -16,6 +16,7 @@ type Props = {
   reliabilityUnit: PercentUnit;
   expanded: boolean;
   hasData: boolean;
+  exclusion: { label: string; count: number } | null;
   onToggle: () => void;
   onDetails: (offer: Offer) => void;
   onReset: () => void;
@@ -23,7 +24,7 @@ type Props = {
 
 const COLS = { base: 1, xs: 2, md: 4 };
 
-export function GpuOfferGrid({ offers, reliabilityUnit, expanded, hasData, onToggle, onDetails, onReset }: Props) {
+export function GpuOfferGrid({ offers, reliabilityUnit, expanded, hasData, exclusion, onToggle, onDetails, onReset }: Props) {
   const expandRef = useRef<HTMLButtonElement>(null);
   const reducedMotion = useReducedMotion();
   const firstFour = visibleModelOffers(offers, false);
@@ -34,7 +35,7 @@ export function GpuOfferGrid({ offers, reliabilityUnit, expanded, hasData, onTog
     return (
       <EmptyState
         title={hasData ? "No models match your filters" : "Inventory is not connected yet"}
-        description={hasData ? "Try removing a filter or increasing your budget to see more models." : "Enable development fixtures to explore the interactive sample dashboard, or connect real inventory in a future integration."}
+        description={hasData ? (exclusion ? `${exclusion.label} removed ${exclusion.count} ${exclusion.count === 1 ? "offer" : "offers"}. Change that filter or reset all filters.` : "No offers are available right now.") : "Enable development fixtures to explore the interactive sample dashboard, or connect real inventory in a future integration."}
         action={hasData ? <Button variant="default" size="sm" onClick={onReset}>Reset filters</Button> : undefined}
       />
     );
