@@ -6,6 +6,7 @@ import { formatGb, formatPercent, formatUsdPerHour } from "@/lib/format";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { EmptyState } from "@/components/shared/async-state";
 import { MarketPositionBadge } from "@/components/explore/market-position-badge";
+import { suggestion } from "@/lib/match/suggestion";
 import { ScoreBreakdown } from "./score-breakdown";
 import { ExclusionSummary } from "./exclusion-summary";
 
@@ -60,7 +61,7 @@ export function MatchResults({ response, request }: { response: MatchResponse; r
           {response.recommendations.map((rec) => <ResultCard key={rec.offer.id} rec={rec} priority={request.priority} />)}
         </Stack>
       ) : (
-        <EmptyState title="No offers meet your requirements" description="Change a requirement and find matches again." />
+        <EmptyState title="No offers meet your requirements" description={suggestion(response.excluded, request)} />
       )}
     </section>
   );
