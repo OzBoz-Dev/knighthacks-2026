@@ -1,4 +1,4 @@
-import type { Offer } from "../api/types";
+import type { Offer, TrendPoint } from "../api/types";
 import type { PercentUnit } from "../format";
 import type { MarketInsights, MarketOverviewData, MarketSnapshot, OfferFilters, TableSort, TableSortKey } from "./types";
 
@@ -102,6 +102,29 @@ export function selectInsights(insights: MarketInsights, gpuName: string | null)
   // The label time is the Databricks update time of the summary, not the fetch time.
   const provenance = { source: insights.provenance.source, timestamp: summary?.updated_at ?? insights.provenance.timestamp };
   return { summary, trend, provenance };
+}
+
+export type TrendChartPoint = {
+  timestamp: string;
+  median: number | null;
+  band: [number, number] | null;
+  listings: number | null;
+};
+
+const finite = (value: number) => (Number.isFinite(value) ? value : null);
+
+// A non-finite value becomes null so the chart draws a gap, never a zero.
+export function trendChartData(points: readonly TrendPoint[]): TrendChartPoint[] {
+  return points.toSorted((a, b) => byName(a.timestamp, b.timestamp)).map((point) => {
+    const p10 = finite(point.p10_price);
+    const p90 = finite(point.p90_price);
+    return {
+      timestamp: point.timestamp,
+      median: finite(point.median_price),
+      band: p10 === null || p90 === null ? null : [p10, p90],
+      listings: finite(point.listing_count),
+    };
+  });
 }
 
 export const TABLE_PAGE_SIZE = 50;

@@ -1,16 +1,17 @@
 "use client";
 
-import { Group, Select, Title } from "@mantine/core";
+import { Group, Select, Text, Title } from "@mantine/core";
 import { useState } from "react";
 import type { MarketInsights as Insights } from "@/lib/explore/types";
 import { selectInsights } from "@/lib/explore/selectors";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { MarketSummaryCards } from "./market-summary-cards";
+import { PriceTrendChart } from "./price-trend-chart";
 import styles from "./explore.module.css";
 
 export function MarketInsights({ insights, models }: { insights: Insights; models: string[] }) {
   const [model, setModel] = useState<string | null>(insights.summaries[0]?.gpu_name ?? models[0] ?? null);
-  const { summary, provenance } = selectInsights(insights, model);
+  const { summary, trend, provenance } = selectInsights(insights, model);
   return (
     <section aria-labelledby="market-insights-title" className={styles.insights}>
       <Group justify="space-between" align="center" mb={10} gap="xs">
@@ -30,6 +31,9 @@ export function MarketInsights({ insights, models }: { insights: Insights; model
         />
       </Group>
       <MarketSummaryCards summary={summary} />
+      <Text fz={12} fw={600} mt="md">Median price over time</Text>
+      <Text fz={10} c="dimmed">Shaded band: 10th to 90th percentile · UTC</Text>
+      <PriceTrendChart points={trend} gpuName={model} />
     </section>
   );
 }

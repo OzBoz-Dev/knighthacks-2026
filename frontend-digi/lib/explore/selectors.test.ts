@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 import { sampleHistory, sampleMarketSummary, sampleOffers, sampleTrendPoints } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, selectInsights, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, selectInsights, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, trendChartData, visibleModelOffers } from "./selectors";
+
+describe("trendChartData", () => {
+  const point = { timestamp: "2026-10-10T12:00:00Z", minimum_price: 0.7, median_price: 0.86, p10_price: 0.75, p90_price: 0.95, listing_count: 4 };
+
+  it("orders points by time and keeps the p10 to p90 band with the median", () => {
+    const later = { ...point, timestamp: "2026-10-10T12:10:00Z", median_price: 0.9 };
+    const data = trendChartData([later, point]);
+    expect(data.map((p) => p.median)).toEqual([0.86, 0.9]);
+    expect(data[0]).toEqual({ timestamp: point.timestamp, median: 0.86, band: [0.75, 0.95], listings: 4 });
+    for (const row of trendChartData(sampleTrendPoints)) expect(row.band![0]).toBeLessThanOrEqual(row.median!);
+  });
+
+  it("turns a missing value into a gap, not a zero", () => {
+    const [gap] = trendChartData([{ ...point, median_price: Number.NaN, p90_price: Number.NaN }]);
+    expect(gap.median).toBeNull();
+    expect(gap.band).toBeNull();
+    expect(gap.listings).toBe(4);
+  });
+
+  it("handles empty and single-point series", () => {
+    expect(trendChartData([])).toEqual([]);
+    expect(trendChartData([point])).toHaveLength(1);
+  });
+});
 
 describe("selectInsights", () => {
   const h100 = { ...sampleMarketSummary, gpu_name: "H100 SXM", lowest_price: 1.8, updated_at: "2026-10-10T12:00:00Z" };
