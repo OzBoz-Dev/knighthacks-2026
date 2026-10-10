@@ -1,0 +1,136 @@
+{
+  "create": {
+    "request": {
+      "request_id": "req_3f9a1c2e7b4d5a60",
+      "snapshot_id": "snap_20261010T200000Z",
+      "offer_id": "10000001",
+      "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      "min_vram_gb": 24,
+      "max_price_per_hour": 1,
+      "priority": "balanced",
+      "region": null
+    },
+    "response": {
+      "id": "res_8c1d2e3f4a5b6c7d",
+      "request_id": "req_3f9a1c2e7b4d5a60",
+      "snapshot_id": "snap_20261010T200000Z",
+      "offer_id": "10000001",
+      "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      "gpu_name": "RTX 4090",
+      "price_per_hour": 0.42,
+      "min_vram_gb": 24,
+      "max_price_per_hour": 1,
+      "priority": "balanced",
+      "region": null,
+      "created_at": "2026-10-10T20:05:00Z",
+      "canonical_payload": "{\"created_at\":\"2026-10-10T20:05:00Z\",\"gpu_name\":\"RTX 4090\",\"id\":\"res_8c1d2e3f4a5b6c7d\",\"max_price_per_hour\":1,\"min_vram_gb\":24,\"offer_id\":\"10000001\",\"price_per_hour\":0.42,\"priority\":\"balanced\",\"region\":null,\"request_id\":\"req_3f9a1c2e7b4d5a60\",\"snapshot_id\":\"snap_20261010T200000Z\",\"wallet\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"}",
+      "payload_hash": "f7255965d695f7b76346aef93a02def83eede210cd390f3d029ca9707531cf87",
+      "status": "pending",
+      "signature": null,
+      "slot": null
+    }
+  },
+  "list": {
+    "request": {
+      "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM"
+    },
+    "response": [
+      {
+        "id": "res_8c1d2e3f4a5b6c7d",
+        "request_id": "req_3f9a1c2e7b4d5a60",
+        "snapshot_id": "snap_20261010T200000Z",
+        "offer_id": "10000001",
+        "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "gpu_name": "RTX 4090",
+        "price_per_hour": 0.42,
+        "min_vram_gb": 24,
+        "max_price_per_hour": 1,
+        "priority": "balanced",
+        "region": null,
+        "created_at": "2026-10-10T20:05:00Z",
+        "canonical_payload": "{\"created_at\":\"2026-10-10T20:05:00Z\",\"gpu_name\":\"RTX 4090\",\"id\":\"res_8c1d2e3f4a5b6c7d\",\"max_price_per_hour\":1,\"min_vram_gb\":24,\"offer_id\":\"10000001\",\"price_per_hour\":0.42,\"priority\":\"balanced\",\"region\":null,\"request_id\":\"req_3f9a1c2e7b4d5a60\",\"snapshot_id\":\"snap_20261010T200000Z\",\"wallet\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"}",
+        "payload_hash": "f7255965d695f7b76346aef93a02def83eede210cd390f3d029ca9707531cf87",
+        "status": "pending",
+        "signature": null,
+        "slot": null
+      },
+      {
+        "id": "res_1a2b3c4d5e6f7a8b",
+        "request_id": "req_3f9a1c2e7b4d5a60",
+        "snapshot_id": "snap_20261010T200000Z",
+        "offer_id": "10000001",
+        "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+        "gpu_name": "RTX 4090",
+        "price_per_hour": 0.42,
+        "min_vram_gb": 24,
+        "max_price_per_hour": 1,
+        "priority": "balanced",
+        "region": null,
+        "created_at": "2026-10-10T19:55:00Z",
+        "canonical_payload": "{\"created_at\":\"2026-10-10T19:55:00Z\",\"gpu_name\":\"RTX 4090\",\"id\":\"res_1a2b3c4d5e6f7a8b\",\"max_price_per_hour\":1,\"min_vram_gb\":24,\"offer_id\":\"10000001\",\"price_per_hour\":0.42,\"priority\":\"balanced\",\"region\":null,\"request_id\":\"req_3f9a1c2e7b4d5a60\",\"snapshot_id\":\"snap_20261010T200000Z\",\"wallet\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"}",
+        "payload_hash": "f0a0ca17be1b50d62f0e5343d4130e6e6d10b24446f8f5c0072c259e98a11536",
+        "status": "confirmed",
+        "signature": "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW",
+        "slot": 318452907
+      }
+    ]
+  },
+  "confirm": {
+    "request": {
+      "signature": "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW"
+    },
+    "response": {
+      "id": "res_1a2b3c4d5e6f7a8b",
+      "request_id": "req_3f9a1c2e7b4d5a60",
+      "snapshot_id": "snap_20261010T200000Z",
+      "offer_id": "10000001",
+      "wallet": "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      "gpu_name": "RTX 4090",
+      "price_per_hour": 0.42,
+      "min_vram_gb": 24,
+      "max_price_per_hour": 1,
+      "priority": "balanced",
+      "region": null,
+      "created_at": "2026-10-10T19:55:00Z",
+      "canonical_payload": "{\"created_at\":\"2026-10-10T19:55:00Z\",\"gpu_name\":\"RTX 4090\",\"id\":\"res_1a2b3c4d5e6f7a8b\",\"max_price_per_hour\":1,\"min_vram_gb\":24,\"offer_id\":\"10000001\",\"price_per_hour\":0.42,\"priority\":\"balanced\",\"region\":null,\"request_id\":\"req_3f9a1c2e7b4d5a60\",\"snapshot_id\":\"snap_20261010T200000Z\",\"wallet\":\"9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM\"}",
+      "payload_hash": "f0a0ca17be1b50d62f0e5343d4130e6e6d10b24446f8f5c0072c259e98a11536",
+      "status": "confirmed",
+      "signature": "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW",
+      "slot": 318452907
+    }
+  },
+  "verify": {
+    "response": {
+      "reservation_id": "res_1a2b3c4d5e6f7a8b",
+      "signature": "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW",
+      "slot": 318452907,
+      "checks": [
+        {
+          "name": "exists",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "signer",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "reservation_id",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "memo_hash",
+          "passed": true,
+          "detail": ""
+        },
+        {
+          "name": "confirmed",
+          "passed": true,
+          "detail": ""
+        }
+      ]
+    }
+  }
+}
