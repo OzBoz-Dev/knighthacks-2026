@@ -83,7 +83,7 @@ export function MatchWorkspace() {
       {match.status === "success" && (
         <>
           {outdated && <Alert color="gray" role="status">These results are for your last search. Select Find matches to use your changes.</Alert>}
-          <MatchResults response={match.response} />
+          <MatchResults response={match.response} request={match.request} />
         </>
       )}
     </Stack>
