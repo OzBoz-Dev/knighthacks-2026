@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 
@@ -11,7 +12,8 @@ import (
 )
 
 // matchHandler serves POST /api/match on the current offer snapshot.
-func matchHandler(src vast.Source) http.HandlerFunc {
+// medians gives the gold median of each GPU for the explanations, or nil.
+func matchHandler(src vast.Source, medians func(context.Context) map[string]float64) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req contract.MatchRequest
 		if !decodeBody(w, r, &req) {
@@ -28,7 +30,7 @@ func matchHandler(src vast.Source) http.HandlerFunc {
 			return
 		}
 		// The frozen MatchResponse has no field for the suggestion, so the handler drops it.
-		resp, _, err := match.Run(snap.Offers, req, nil)
+		resp, _, err := match.Run(snap.Offers, req, medians(r.Context()))
 		if err == nil {
 			resp.RequestID, err = newID("req_")
 		}

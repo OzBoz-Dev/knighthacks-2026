@@ -50,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
-	mux.HandleFunc("POST /api/match", matchHandler(offers))
+	mux.HandleFunc("POST /api/match", matchHandler(offers, medians.get))
 
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
 

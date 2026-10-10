@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -28,7 +29,7 @@ const validMatch = `{"min_vram_gb":24,"max_price_per_hour":1,"min_reliability":0
 func postMatch(t *testing.T, src vast.Source, body string) *httptest.ResponseRecorder {
 	t.Helper()
 	w := httptest.NewRecorder()
-	matchHandler(src).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/match", strings.NewReader(body)))
+	matchHandler(src, noMedians).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/match", strings.NewReader(body)))
 	return w
 }
 
@@ -91,6 +92,15 @@ func TestMatchBadRequest(t *testing.T) {
 func TestMatchNoOffers(t *testing.T) {
 	w := postMatch(t, stubSource{err: errors.New("no vast data")}, validMatch)
 	if w.Code != http.StatusServiceUnavailable || !strings.Contains(w.Body.String(), `"upstream_unavailable"`) {
+		t.Fatalf("status %d body %s", w.Code, w.Body)
+	}
+}
+
+func TestMatchUsesMedians(t *testing.T) {
+	medians := func(context.Context) map[string]float64 { return map[string]float64{"RTX 4090": 0.48} }
+	w := httptest.NewRecorder()
+	matchHandler(stubSource{snap: matchSnap}, medians).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/match", strings.NewReader(validMatch)))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "below the typical RTX 4090 price") {
 		t.Fatalf("status %d body %s", w.Code, w.Body)
 	}
 }
