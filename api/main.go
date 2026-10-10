@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
+	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 )
 
 func main() {
@@ -23,6 +24,13 @@ func main() {
 		slog.Error("config", "err", err)
 		os.Exit(1)
 	}
+
+	db, err := store.Open(cfg.DBPath)
+	if err != nil {
+		slog.Error("open db", "err", err)
+		os.Exit(1)
+	}
+	defer db.Close()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
