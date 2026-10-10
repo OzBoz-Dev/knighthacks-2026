@@ -7,8 +7,8 @@ import (
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 )
 
-// vramOf is the one VRAM rule. #2 decides it: change TotalVRAMGB to GPURAMGB for the per-GPU rule.
-func vramOf(o contract.Offer) float64 { return o.TotalVRAMGB }
+// vramOf is the one VRAM rule. Issue #36 chose VRAM per GPU, so it reads GPURAMGB, not TotalVRAMGB.
+func vramOf(o contract.Offer) float64 { return o.GPURAMGB }
 
 // filter is one hard eligibility filter. fails is true when the offer does not meet the request.
 type filter struct {
@@ -25,7 +25,7 @@ var filters = []filter{
 	{"Region", func(o contract.Offer, req contract.MatchRequest) bool {
 		return req.Region != "" && o.Region != req.Region
 	}, func(ex *contract.Excluded) *int { return &ex.Region }},
-	{"VRAM", func(o contract.Offer, req contract.MatchRequest) bool {
+	{"VRAM per GPU", func(o contract.Offer, req contract.MatchRequest) bool {
 		return vramOf(o) < req.MinVRAMGB
 	}, func(ex *contract.Excluded) *int { return &ex.VRAM }},
 	{"Reliability", func(o contract.Offer, req contract.MatchRequest) bool {

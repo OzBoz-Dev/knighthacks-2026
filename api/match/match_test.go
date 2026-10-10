@@ -10,7 +10,7 @@ import (
 
 // offer builds an offer that passes the model, region, and VRAM filters of baseReq.
 func offer(id string, price, rel float64, dlperf *float64) contract.Offer {
-	return contract.Offer{ID: id, GPUName: "RTX 4090", Region: "US", TotalVRAMGB: 24, PricePerHour: price, Reliability: rel, DLPerf: dlperf}
+	return contract.Offer{ID: id, GPUName: "RTX 4090", Region: "US", GPURAMGB: 24, PricePerHour: price, Reliability: rel, DLPerf: dlperf}
 }
 
 func baseReq(p contract.Priority) contract.MatchRequest {
@@ -21,11 +21,11 @@ func baseReq(p contract.Priority) contract.MatchRequest {
 // so the expected scores below are exact. a and d are twins, so only the offer ID orders them.
 func snapshot() []contract.Offer {
 	model := offer("h", 1, 1, nil)
-	model.GPUName, model.TotalVRAMGB = "RTX 3090", 8
+	model.GPUName, model.GPURAMGB = "RTX 3090", 8
 	region := offer("i", 1, 0.1, nil)
 	region.Region = "EU"
 	vram := offer("j", 1, 1, nil)
-	vram.TotalVRAMGB = 16
+	vram.GPURAMGB = 16
 	return []contract.Offer{
 		offer("a", 1.0, 0.5, ptr(40)),
 		offer("b", 2.0, 1.0, ptr(100)),
