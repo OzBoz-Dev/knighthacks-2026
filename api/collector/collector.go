@@ -51,11 +51,33 @@ func collect(ctx context.Context, f Fetcher, dir string) {
 		return
 	}
 	name := filepath.Join(dir, "snapshot_"+res.CapturedAt.UTC().Format("20060102T150405Z")+".json")
+	if err := writeAtomic(dir, name, b); err != nil {
+		slog.Warn("collector write failed", "err", err)
+	}
+}
+
+// writeAtomic writes to a temp file in dir, then renames it, so a reader never sees a partial file.
+// The temp name does not match snapshot_*.json.
+func writeAtomic(dir, name string, b []byte) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		slog.Warn("collector write failed", "err", err)
-		return
+		return err
 	}
-	if err := os.WriteFile(name, b, 0o644); err != nil {
-		slog.Warn("collector write failed", "err", err)
+	tmp, err := os.CreateTemp(dir, ".snapshot_*.tmp")
+	if err != nil {
+		return err
 	}
+	err = tmp.Chmod(0o644) // CreateTemp uses 0600, and the upload script may run as another user
+	if err == nil {
+		_, err = tmp.Write(b)
+	}
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err == nil {
+		err = os.Rename(tmp.Name(), name)
+	}
+	if err != nil {
+		os.Remove(tmp.Name())
+	}
+	return err
 }
