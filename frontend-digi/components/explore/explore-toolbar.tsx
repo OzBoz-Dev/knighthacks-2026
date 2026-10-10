@@ -30,7 +30,9 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
           value={search}
           onChange={(event) => onSearch(event.currentTarget.value)}
           disabled={!sample}
+          mb={10}
         />
+        <Group justify="space-between">
         <UnstyledButton onClick={indexModal.open} className={styles.indexTile} aria-label="Global GPU index methodology">
           <Group gap={10} wrap="nowrap">
             <ThemeIcon variant="light" size={25}><IconChartLine size={16} aria-hidden /></ThemeIcon>
@@ -46,10 +48,13 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
           </Group>
         </UnstyledButton>
         <Tooltip label="Preview only — wallet integration is pending">
-          <Button onClick={walletModal.open} leftSection={<IconWallet size={17} aria-hidden />} size="sm" rightSection={<Badge size="xs" color="dark" variant="light" tt="none">Preview</Badge>}>
-            Connect Phantom
-          </Button>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={walletModal.open} leftSection={<IconWallet size={17} aria-hidden />} size="sm" rightSection={<Badge size="xs" color="dark" variant="light" tt="none">Preview</Badge>}>
+              Connect Phantom
+            </Button>
+          </Group>
         </Tooltip>
+        </Group>
       </Box>
       <Modal opened={indexOpened} onClose={indexModal.close} title="About the Global GPU Index" centered>
         <Stack gap="sm">
