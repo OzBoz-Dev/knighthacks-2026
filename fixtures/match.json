@@ -1,0 +1,80 @@
+{
+  "request": {
+    "min_vram_gb": 24,
+    "max_price_per_hour": 1.0,
+    "min_reliability": 0.97,
+    "priority": "balanced"
+  },
+  "response": {
+    "request_id": "req_3f9a1c2e7b4d5a60",
+    "snapshot_id": "snap_20261010T200000Z",
+    "checked": 4,
+    "eligible": 2,
+    "excluded": {
+      "gpu_model": 0,
+      "region": 0,
+      "vram": 0,
+      "reliability": 1,
+      "budget": 1
+    },
+    "recommendations": [
+      {
+        "rank": 1,
+        "offer": {
+          "id": "10000001",
+          "gpu_name": "RTX 4090",
+          "num_gpus": 1,
+          "gpu_ram_gb": 24,
+          "total_vram_gb": 24,
+          "region": "US",
+          "price_per_hour": 0.42,
+          "reliability": 0.992,
+          "dlperf": 81.3,
+          "performance_per_dollar": 193.57,
+          "verified": true,
+          "market_position_pct": -12.5,
+          "price_percentile": null
+        },
+        "score": 65.0,
+        "score_breakdown": {
+          "price": 100,
+          "performance": 0,
+          "reliability": 100
+        },
+        "explanations": [
+          "24 GB VRAM meets your 24 GB requirement.",
+          "$0.42/hour, 12.5% below the typical price for an RTX 4090.",
+          "99.2% reliability."
+        ]
+      },
+      {
+        "rank": 2,
+        "offer": {
+          "id": "10000002",
+          "gpu_name": "RTX 4090",
+          "num_gpus": 2,
+          "gpu_ram_gb": 24,
+          "total_vram_gb": 48,
+          "region": "DE",
+          "price_per_hour": 0.95,
+          "reliability": 0.981,
+          "dlperf": 160.2,
+          "performance_per_dollar": 168.63,
+          "verified": true,
+          "market_position_pct": -1.0,
+          "price_percentile": null
+        },
+        "score": 35.0,
+        "score_breakdown": {
+          "price": 0,
+          "performance": 100,
+          "reliability": 0
+        },
+        "explanations": [
+          "48 GB VRAM meets your 24 GB requirement.",
+          "98.1% reliability."
+        ]
+      }
+    ]
+  }
+}

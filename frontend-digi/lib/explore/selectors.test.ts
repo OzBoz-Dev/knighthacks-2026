@@ -1,6 +1,139 @@
 import { describe, expect, it } from "vitest";
-import { sampleOffers, sampleHistory } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, percentageChange, visibleModelOffers } from "./selectors";
+import { sampleHistory, sampleMarketSummary, sampleOffers, sampleTrendPoints } from "../data/dev-fixtures";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, selectInsights, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, trendChartData, visibleModelOffers } from "./selectors";
+
+describe("trendChartData", () => {
+  const point = { timestamp: "2026-10-10T12:00:00Z", minimum_price: 0.7, median_price: 0.86, p10_price: 0.75, p90_price: 0.95, listing_count: 4 };
+
+  it("orders points by time and keeps the p10 to p90 band with the median", () => {
+    const later = { ...point, timestamp: "2026-10-10T12:10:00Z", median_price: 0.9 };
+    const data = trendChartData([later, point]);
+    expect(data.map((p) => p.median)).toEqual([0.86, 0.9]);
+    expect(data[0]).toEqual({ timestamp: point.timestamp, median: 0.86, band: [0.75, 0.95], listings: 4 });
+    for (const row of trendChartData(sampleTrendPoints)) expect(row.band![0]).toBeLessThanOrEqual(row.median!);
+  });
+
+  it("turns a missing value into a gap, not a zero", () => {
+    const [gap] = trendChartData([{ ...point, median_price: Number.NaN, p90_price: Number.NaN }]);
+    expect(gap.median).toBeNull();
+    expect(gap.band).toBeNull();
+    expect(gap.listings).toBe(4);
+  });
+
+  it("handles empty and single-point series", () => {
+    expect(trendChartData([])).toEqual([]);
+    expect(trendChartData([point])).toHaveLength(1);
+  });
+});
+
+describe("selectInsights", () => {
+  const h100 = { ...sampleMarketSummary, gpu_name: "H100 SXM", lowest_price: 1.8, updated_at: "2026-10-10T12:00:00Z" };
+  const insights = {
+    provenance: { source: "databricks-live" as const, timestamp: "2026-10-10T13:00:00Z" },
+    summaries: [sampleMarketSummary, h100],
+    trends: { "RTX 4090": sampleTrendPoints },
+  };
+
+  it("returns the summary and the trend for the selected model", () => {
+    const rtx = selectInsights(insights, "RTX 4090");
+    expect(rtx.summary).toBe(sampleMarketSummary);
+    expect(rtx.trend).toBe(sampleTrendPoints);
+    expect(selectInsights(insights, "H100 SXM").summary?.lowest_price).toBe(1.8);
+  });
+
+  it("labels the data with the summary update time, not another time", () => {
+    expect(selectInsights(insights, "H100 SXM").provenance).toEqual({ source: "databricks-live", timestamp: "2026-10-10T12:00:00Z" });
+  });
+
+  it("hides every insight value when the insights source is unavailable", () => {
+    const down = selectInsights({ ...insights, provenance: { source: "unavailable", timestamp: null } }, "RTX 4090");
+    expect(down.unavailable).toBe(true);
+    expect(down.summary).toBeNull();
+    expect(down.trend).toEqual([]);
+    expect(selectInsights(insights, "RTX 4090").unavailable).toBe(false);
+  });
+
+  it("gives no numbers for a model without a summary", () => {
+    const missing = selectInsights(insights, "V100");
+    expect(missing.summary).toBeNull();
+    expect(missing.trend).toEqual([]);
+    expect(selectInsights(insights, null).summary).toBeNull();
+  });
+});
+
+describe("largestExclusion", () => {
+  it("returns null when no filter is active", () => {
+    expect(largestExclusion(sampleOffers, DEFAULT_FILTERS, "ratio")).toBeNull();
+  });
+
+  it("counts the offers that one filter removes", () => {
+    const removed = sampleOffers.filter((o) => o.price_per_hour > 0.5).length;
+    expect(largestExclusion(sampleOffers, { ...DEFAULT_FILTERS, maxPrice: 0.5 }, "ratio")).toEqual({ label: "Max price", count: removed });
+  });
+
+  it("names the filter that removes the most offers when two are active", () => {
+    const filters = { ...DEFAULT_FILTERS, maxPrice: 0.1, verifiedOnly: true };
+    expect(filterOffers(sampleOffers, filters, "ratio")).toEqual([]);
+    expect(largestExclusion(sampleOffers, filters, "ratio")).toEqual({ label: "Max price", count: sampleOffers.length });
+  });
+
+  it("picks the earlier filter in the fixed order when counts are equal", () => {
+    const base = sampleOffers[0];
+    const offers = [{ ...base, id: "x", region: "US West", verified: false }];
+    expect(largestExclusion(offers, { ...DEFAULT_FILTERS, region: "EU Central", verifiedOnly: true }, "ratio")).toEqual({ label: "Region", count: 1 });
+  });
+});
+
+describe("tableRowWindow", () => {
+  it("shows up to the limit and counts the remaining rows", () => {
+    expect(tableRowWindow(0, TABLE_PAGE_SIZE)).toEqual({ shown: 0, remaining: 0 });
+    expect(tableRowWindow(49, TABLE_PAGE_SIZE)).toEqual({ shown: 49, remaining: 0 });
+    expect(tableRowWindow(50, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 0 });
+    expect(tableRowWindow(51, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 1 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE)).toEqual({ shown: 50, remaining: 51 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE * 2)).toEqual({ shown: 100, remaining: 1 });
+    expect(tableRowWindow(101, TABLE_PAGE_SIZE * 3)).toEqual({ shown: 101, remaining: 0 });
+  });
+});
+
+describe("sortOffers", () => {
+  const base = sampleOffers[0];
+  const offers = [
+    { ...base, id: "c", price_per_hour: 2, reliability: 0.95, performance_per_dollar: 50 },
+    { ...base, id: "a", price_per_hour: 1, reliability: 0.99, performance_per_dollar: null },
+    { ...base, id: "b", price_per_hour: 2, reliability: 0.95, performance_per_dollar: 80 },
+    { ...base, id: "d", price_per_hour: 3, reliability: 0.9, performance_per_dollar: 80 },
+  ];
+  const ids = (key: "price" | "reliability" | "performance", direction: "asc" | "desc") => sortOffers(offers, { key, direction }).map((o) => o.id);
+
+  it("sorts by price in both directions and breaks ties by offer id", () => {
+    expect(ids("price", "asc")).toEqual(["a", "b", "c", "d"]);
+    expect(ids("price", "desc")).toEqual(["d", "b", "c", "a"]);
+  });
+
+  it("sorts by reliability in both directions", () => {
+    expect(ids("reliability", "desc")).toEqual(["a", "b", "c", "d"]);
+    expect(ids("reliability", "asc")).toEqual(["d", "b", "c", "a"]);
+  });
+
+  it("sorts by performance per dollar and keeps a missing value last in both directions", () => {
+    expect(ids("performance", "desc")).toEqual(["b", "d", "c", "a"]);
+    expect(ids("performance", "asc")).toEqual(["c", "b", "d", "a"]);
+  });
+
+  it("starts a new column in its natural direction and toggles the same column", () => {
+    expect(nextSort({ key: "price", direction: "asc" }, "price")).toEqual({ key: "price", direction: "desc" });
+    expect(nextSort({ key: "price", direction: "desc" }, "price")).toEqual({ key: "price", direction: "asc" });
+    expect(nextSort({ key: "price", direction: "asc" }, "reliability")).toEqual({ key: "reliability", direction: "desc" });
+    expect(nextSort({ key: "reliability", direction: "asc" }, "performance")).toEqual({ key: "performance", direction: "desc" });
+  });
+
+  it("does not mutate the input and gives the same order every time", () => {
+    const before = offers.map((o) => o.id);
+    expect(ids("price", "asc")).toEqual(ids("price", "asc"));
+    expect(offers.map((o) => o.id)).toEqual(before);
+  });
+});
 
 describe("offer selection", () => {
   it("uses four curated distinct models first and expands to at least eight", () => {
@@ -34,6 +167,12 @@ describe("offer selection", () => {
     expect(filterOffers(sampleOffers, { ...DEFAULT_FILTERS, minVram: 1000 }, "ratio")).toEqual([]);
     expect(filterOffers(sampleOffers, { ...DEFAULT_FILTERS, maxPrice: 0 }, "ratio")).toEqual([]);
     expect(filterOffers(sampleOffers, DEFAULT_FILTERS, "ratio")).toHaveLength(sampleOffers.length);
+  });
+
+  it("keeps every filtered offer for the table, not one per model", () => {
+    const filters = { ...DEFAULT_FILTERS, model: "RTX 4090" };
+    expect(getModelOffers(sampleOffers, filters, "ratio")).toHaveLength(1);
+    expect(filterOffers(sampleOffers, filters, "ratio")).toHaveLength(sampleOffers.filter((o) => o.gpu_name === "RTX 4090").length);
   });
 
   it("chooses a representative after filtering with a deterministic price/id tie-break", () => {
