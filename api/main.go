@@ -13,6 +13,7 @@ import (
 	"github.com/OzBoz-Dev/knighthacks-2026/api/contract"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
+	"github.com/OzBoz-Dev/knighthacks-2026/api/vast"
 )
 
 func main() {
@@ -40,6 +41,14 @@ func main() {
 	registerMarket(mux, cfg)
 
 	mux.Handle("POST /api/reservations", createReservation(db, noOffers{}))
+
+	vastClient := vast.NewClient(cfg.VastAPIKey)
+	offers, err := newOfferSource(cfg, vastClient, vastFixturePath)
+	if err != nil {
+		slog.Error("vast fixture", "err", err)
+		os.Exit(1)
+	}
+	mux.HandleFunc("GET /api/offers", offersHandler(offers))
 
 	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
 
