@@ -61,6 +61,21 @@ func (m medianSource) liveMedians(ctx context.Context) (map[string]float64, erro
 	}
 }
 
+// status gives the databricks component status: the live warehouse through the cache, else the export.
+func (m medianSource) status(ctx context.Context) string {
+	switch {
+	case m.live != nil:
+		if _, err := m.liveMedians(ctx); err != nil {
+			slog.Warn("health: databricks", "err", err)
+			return statusUnavailable
+		}
+		return statusOK
+	case m.export != nil:
+		return statusFixture
+	}
+	return statusUnavailable
+}
+
 // withMarketPosition returns a copy of the offers with market_position_pct set from the GPU median.
 // The copy keeps the cached snapshot unchanged. An offer with no median keeps null.
 func withMarketPosition(offers []contract.Offer, medians map[string]float64) []contract.Offer {

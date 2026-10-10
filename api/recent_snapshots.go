@@ -18,6 +18,7 @@ type recentSnapshots struct {
 	mu   sync.Mutex
 	ids  []string // oldest first
 	byID map[string]map[string]contract.Offer
+	live bool // the last Get gave fresh offers, for the health endpoint
 }
 
 func newRecentSnapshots(src vast.Source) *recentSnapshots {
@@ -27,12 +28,13 @@ func newRecentSnapshots(src vast.Source) *recentSnapshots {
 // Get returns the snapshot of src and keeps its offers.
 func (s *recentSnapshots) Get(ctx context.Context) (vast.Snapshot, error) {
 	snap, err := s.src.Get(ctx)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.live = err == nil && !snap.Saved
 	if err != nil {
 		return snap, err
 	}
 	id := vast.SnapshotID(snap.CapturedAt)
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	if _, ok := s.byID[id]; !ok {
 		offers := make(map[string]contract.Offer, len(snap.Offers))
 		for _, o := range snap.Offers {
@@ -54,4 +56,15 @@ func (s *recentSnapshots) Offer(snapshotID, offerID string) (contract.Offer, boo
 	defer s.mu.Unlock()
 	o, ok := s.byID[snapshotID][offerID]
 	return o, ok
+}
+
+// vastStatus gives the vast component status from the last Get, with no Vast.ai call.
+// A call to the cache from here could store a timeout as a failed refresh for the whole TTL.
+func (s *recentSnapshots) vastStatus() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.live {
+		return statusOK
+	}
+	return statusUnavailable
 }

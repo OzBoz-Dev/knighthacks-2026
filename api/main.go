@@ -13,7 +13,6 @@ import (
 	"github.com/gagliardetto/solana-go/rpc"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/collector"
-	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/store"
 	"github.com/OzBoz-Dev/knighthacks-2026/api/vast"
 )
@@ -37,9 +36,6 @@ func main() {
 	defer db.Close()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
 	medians := registerMarket(mux, cfg)
 
 	vastClient := vast.NewClient(cfg.VastAPIKey)
@@ -49,6 +45,8 @@ func main() {
 		os.Exit(1)
 	}
 	offers := newRecentSnapshots(source)
+	go offers.Get(context.Background()) // fills the vast health status at start
+	mux.HandleFunc("GET /api/health", healthHandler(healthChecks{cfg.UseVastFixture, cfg.UseDatabricksFixture, offers.vastStatus, medians.status, pingSQLite(db)}))
 	mux.Handle("POST /api/reservations", createReservation(db, offers))
 	chain := rpc.New(cfg.SolanaRPCURL)
 	mux.Handle("POST /api/reservations/{id}/confirm", confirmReservation(db, chain))
