@@ -1,6 +1,6 @@
 {
   "name": "solgpu-pipeline",
-  "description": "Runs bronze ingest, name maps, silver, data quality, and the three gold tables, then the gold contract checks, in order every 10 minutes.",
+  "description": "Runs bronze ingest, name maps, silver, data quality, and the four gold tables, then the gold contract checks, in order every 10 minutes.",
   "max_concurrent_runs": 1,
   "timeout_seconds": 1500,
   "schedule": {
@@ -61,8 +61,16 @@
       }
     },
     {
-      "task_key": "gold_offer_market_position",
+      "task_key": "gold_price_index",
       "depends_on": [{ "task_key": "gold_price_trends" }],
+      "sql_task": {
+        "file": { "path": "/Shared/solgpu/sql/33_gold_gpu_price_index.sql", "source": "WORKSPACE" },
+        "warehouse_id": "3ed885676f1ef2ab"
+      }
+    },
+    {
+      "task_key": "gold_offer_market_position",
+      "depends_on": [{ "task_key": "gold_price_index" }],
       "sql_task": {
         "file": { "path": "/Shared/solgpu/sql/32_gold_offer_market_position.sql", "source": "WORKSPACE" },
         "warehouse_id": "3ed885676f1ef2ab"
