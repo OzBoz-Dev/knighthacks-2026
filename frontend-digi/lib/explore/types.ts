@@ -15,6 +15,9 @@ export type OfferFilters = {
   sort: OfferSort;
 };
 
+export type TableSortKey = "price" | "reliability" | "performance";
+export type TableSort = { key: TableSortKey; direction: "asc" | "desc" };
+
 export type MarketSnapshot = {
   timestamp: string;
   offers: readonly Offer[];

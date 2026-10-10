@@ -168,6 +168,17 @@
   text-align: left;
 }
 
+.sortHeader {
+  width: 100%;
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.sortHeader:hover {
+  color: var(--mantine-color-lava-3);
+}
+
 .rowAction:focus-visible {
   outline: 2px solid var(--mantine-color-lava-5);
   outline-offset: 2px;

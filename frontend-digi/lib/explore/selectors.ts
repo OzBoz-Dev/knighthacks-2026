@@ -1,6 +1,6 @@
 import type { Offer } from "../api/types";
 import type { PercentUnit } from "../format";
-import type { MarketOverviewData, MarketSnapshot, OfferFilters } from "./types";
+import type { MarketOverviewData, MarketSnapshot, OfferFilters, TableSort, TableSortKey } from "./types";
 
 export const FEATURED_MODELS = ["H100 SXM", "A100 PCIe", "RTX 4090", "L40S"] as const;
 
@@ -54,6 +54,32 @@ export function getModelOffers(offers: readonly Offer[], filters: OfferFilters, 
     }
     return featuredRank(a.gpu_name) - featuredRank(b.gpu_name) || byPrice(a, b);
   });
+}
+
+const SORT_VALUE: Record<TableSortKey, (offer: Offer) => number | null> = {
+  price: (offer) => offer.price_per_hour,
+  reliability: (offer) => offer.reliability,
+  performance: (offer) => offer.performance_per_dollar,
+};
+
+// Equal values always fall back to ascending offer ID, so the order is stable in both directions.
+export function sortOffers(offers: readonly Offer[], { key, direction }: TableSort): Offer[] {
+  const value = SORT_VALUE[key];
+  const sign = direction === "asc" ? 1 : -1;
+  return offers.toSorted((a, b) => {
+    const av = value(a);
+    const bv = value(b);
+    if (av === null || bv === null) return (av === null ? 1 : 0) - (bv === null ? 1 : 0) || byName(a.id, b.id);
+    return (av - bv) * sign || byName(a.id, b.id);
+  });
+}
+
+// Price starts cheapest first; reliability and value start best first.
+const FIRST_DIRECTION: Record<TableSortKey, TableSort["direction"]> = { price: "asc", reliability: "desc", performance: "desc" };
+
+export function nextSort(current: TableSort, key: TableSortKey): TableSort {
+  if (current.key !== key) return { key, direction: FIRST_DIRECTION[key] };
+  return { key, direction: current.direction === "asc" ? "desc" : "asc" };
 }
 
 export function visibleModelOffers(offers: readonly Offer[], expanded: boolean): readonly Offer[] {

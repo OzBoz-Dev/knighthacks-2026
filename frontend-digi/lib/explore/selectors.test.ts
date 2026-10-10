@@ -1,6 +1,45 @@
 import { describe, expect, it } from "vitest";
 import { sampleOffers, sampleHistory } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, percentageChange, visibleModelOffers } from "./selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, nextSort, percentageChange, sortOffers, visibleModelOffers } from "./selectors";
+
+describe("sortOffers", () => {
+  const base = sampleOffers[0];
+  const offers = [
+    { ...base, id: "c", price_per_hour: 2, reliability: 0.95, performance_per_dollar: 50 },
+    { ...base, id: "a", price_per_hour: 1, reliability: 0.99, performance_per_dollar: null },
+    { ...base, id: "b", price_per_hour: 2, reliability: 0.95, performance_per_dollar: 80 },
+    { ...base, id: "d", price_per_hour: 3, reliability: 0.9, performance_per_dollar: 80 },
+  ];
+  const ids = (key: "price" | "reliability" | "performance", direction: "asc" | "desc") => sortOffers(offers, { key, direction }).map((o) => o.id);
+
+  it("sorts by price in both directions and breaks ties by offer id", () => {
+    expect(ids("price", "asc")).toEqual(["a", "b", "c", "d"]);
+    expect(ids("price", "desc")).toEqual(["d", "b", "c", "a"]);
+  });
+
+  it("sorts by reliability in both directions", () => {
+    expect(ids("reliability", "desc")).toEqual(["a", "b", "c", "d"]);
+    expect(ids("reliability", "asc")).toEqual(["d", "b", "c", "a"]);
+  });
+
+  it("sorts by performance per dollar and keeps a missing value last in both directions", () => {
+    expect(ids("performance", "desc")).toEqual(["b", "d", "c", "a"]);
+    expect(ids("performance", "asc")).toEqual(["c", "b", "d", "a"]);
+  });
+
+  it("starts a new column in its natural direction and toggles the same column", () => {
+    expect(nextSort({ key: "price", direction: "asc" }, "price")).toEqual({ key: "price", direction: "desc" });
+    expect(nextSort({ key: "price", direction: "desc" }, "price")).toEqual({ key: "price", direction: "asc" });
+    expect(nextSort({ key: "price", direction: "asc" }, "reliability")).toEqual({ key: "reliability", direction: "desc" });
+    expect(nextSort({ key: "reliability", direction: "asc" }, "performance")).toEqual({ key: "performance", direction: "desc" });
+  });
+
+  it("does not mutate the input and gives the same order every time", () => {
+    const before = offers.map((o) => o.id);
+    expect(ids("price", "asc")).toEqual(ids("price", "asc"));
+    expect(offers.map((o) => o.id)).toEqual(before);
+  });
+});
 
 describe("offer selection", () => {
   it("uses four curated distinct models first and expands to at least eight", () => {
