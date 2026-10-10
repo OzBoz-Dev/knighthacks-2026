@@ -30,16 +30,19 @@ export function OfferTable({ offers, reliabilityUnit, onDetails }: {
       </Group>
       <Table.ScrollContainer minWidth={820} className={styles.tableFrame}>
         <Table highlightOnHover verticalSpacing={6} horizontalSpacing="sm" fz={12}>
+          <VisuallyHidden component="caption">
+            Vast.ai GPU offers that match your filters. Prices are hourly quotes for the whole offer. Use Details to open an offer record.
+          </VisuallyHidden>
           <Table.Thead>
             <Table.Tr>
-              {COLUMNS.map(({ label, numeric }) => <Table.Th key={label} ta={numeric ? "right" : "left"} fz={11}>{label}</Table.Th>)}
-              <Table.Th fz={11}><VisuallyHidden>Actions</VisuallyHidden></Table.Th>
+              {COLUMNS.map(({ label, numeric }) => <Table.Th key={label} scope="col" ta={numeric ? "right" : "left"} fz={11}>{label}</Table.Th>)}
+              <Table.Th scope="col" fz={11}><VisuallyHidden>Actions</VisuallyHidden></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {offers.map((offer) => (
               <Table.Tr key={offer.id} className={styles.offerRow} onClick={() => onDetails(offer)}>
-                <Table.Td fw={600}>{offer.gpu_name}</Table.Td>
+                <Table.Th scope="row" fw={600}>{offer.gpu_name}</Table.Th>
                 <Table.Td ta="right" className="tabular">{offer.num_gpus}</Table.Td>
                 <Table.Td ta="right" className="tabular">{formatGb(offer.gpu_ram_gb)}</Table.Td>
                 <Table.Td>{offer.region}</Table.Td>
@@ -51,6 +54,7 @@ export function OfferTable({ offers, reliabilityUnit, onDetails }: {
                   <Button
                     variant="subtle"
                     size="compact-xs"
+                    className={styles.rowAction}
                     onClick={(event) => { event.stopPropagation(); onDetails(offer); }}
                     aria-label={`Details for ${offer.gpu_name} offer ${offer.id}`}
                   >
