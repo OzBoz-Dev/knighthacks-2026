@@ -1,6 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { sampleOffers, sampleHistory } from "../data/dev-fixtures";
-import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+import { sampleHistory, sampleMarketSummary, sampleOffers, sampleTrendPoints } from "../data/dev-fixtures";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, nextSort, percentageChange, selectInsights, sortOffers, TABLE_PAGE_SIZE, tableRowWindow, visibleModelOffers } from "./selectors";
+
+describe("selectInsights", () => {
+  const h100 = { ...sampleMarketSummary, gpu_name: "H100 SXM", lowest_price: 1.8, updated_at: "2026-10-10T12:00:00Z" };
+  const insights = {
+    provenance: { source: "databricks-live" as const, timestamp: "2026-10-10T13:00:00Z" },
+    summaries: [sampleMarketSummary, h100],
+    trends: { "RTX 4090": sampleTrendPoints },
+  };
+
+  it("returns the summary and the trend for the selected model", () => {
+    const rtx = selectInsights(insights, "RTX 4090");
+    expect(rtx.summary).toBe(sampleMarketSummary);
+    expect(rtx.trend).toBe(sampleTrendPoints);
+    expect(selectInsights(insights, "H100 SXM").summary?.lowest_price).toBe(1.8);
+  });
+
+  it("labels the data with the summary update time, not another time", () => {
+    expect(selectInsights(insights, "H100 SXM").provenance).toEqual({ source: "databricks-live", timestamp: "2026-10-10T12:00:00Z" });
+  });
+
+  it("gives no numbers for a model without a summary", () => {
+    const missing = selectInsights(insights, "V100");
+    expect(missing.summary).toBeNull();
+    expect(missing.trend).toEqual([]);
+    expect(selectInsights(insights, null).summary).toBeNull();
+  });
+});
 
 describe("largestExclusion", () => {
   it("returns null when no filter is active", () => {

@@ -1,6 +1,6 @@
 import type { Offer } from "../api/types";
 import type { PercentUnit } from "../format";
-import type { MarketOverviewData, MarketSnapshot, OfferFilters, TableSort, TableSortKey } from "./types";
+import type { MarketInsights, MarketOverviewData, MarketSnapshot, OfferFilters, TableSort, TableSortKey } from "./types";
 
 export const FEATURED_MODELS = ["H100 SXM", "A100 PCIe", "RTX 4090", "L40S"] as const;
 
@@ -93,6 +93,15 @@ export function sortOffers(offers: readonly Offer[], { key, direction }: TableSo
     if (av === null || bv === null) return (av === null ? 1 : 0) - (bv === null ? 1 : 0) || byName(a.id, b.id);
     return (av - bv) * sign || byName(a.id, b.id);
   });
+}
+
+// A model without a Databricks summary gets null, never another model's numbers.
+export function selectInsights(insights: MarketInsights, gpuName: string | null) {
+  const summary = insights.summaries.find((row) => row.gpu_name === gpuName) ?? null;
+  const trend = (gpuName && insights.trends[gpuName]) || [];
+  // The label time is the Databricks update time of the summary, not the fetch time.
+  const provenance = { source: insights.provenance.source, timestamp: summary?.updated_at ?? insights.provenance.timestamp };
+  return { summary, trend, provenance };
 }
 
 export const TABLE_PAGE_SIZE = 50;

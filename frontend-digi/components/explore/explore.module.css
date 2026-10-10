@@ -153,6 +153,28 @@
   align-items: stretch;
 }
 
+.insights {
+  padding: 11px;
+  background: var(--dg-surface);
+  border: 1px solid var(--dg-rule);
+  border-radius: var(--mantine-radius-sm);
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  background: var(--dg-elevated);
+  border-radius: var(--mantine-radius-sm);
+}
+
 .tableFrame {
   background: var(--dg-surface);
   border: 1px solid var(--dg-rule);
@@ -259,7 +281,8 @@
 }
 
 @container explore (max-width: 759px) {
-  .overviewGrid {
+  .overviewGrid,
+  .summaryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

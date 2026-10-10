@@ -13,6 +13,7 @@ import { GpuOfferGrid } from "./gpu-offer-grid";
 import { OfferDetailsDrawer } from "./offer-details-drawer";
 import { MarketOverview } from "./market-overview";
 import { OfferTable } from "./offer-table";
+import { MarketInsights } from "./market-insights";
 import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
@@ -68,6 +69,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           onReset={resetFilters}
         />
       </section>
+      {data && <MarketInsights insights={data.insights} models={models} />}
       <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
       <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
       <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />

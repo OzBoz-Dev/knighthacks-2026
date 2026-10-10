@@ -1,5 +1,5 @@
-import type { Offer } from "../api/types";
-import type { Provenance } from "../data/provenance";
+import type { MarketSummary, Offer, TrendPoint } from "../api/types";
+import type { InsightsSource, Provenance } from "../data/provenance";
 import type { PercentUnit } from "../format";
 
 export type OfferSort = "featured" | "price" | "reliability" | "performance";
@@ -23,11 +23,18 @@ export type MarketSnapshot = {
   offers: readonly Offer[];
 };
 
+export type MarketInsights = {
+  provenance: Provenance<InsightsSource>;
+  summaries: readonly MarketSummary[];
+  trends: Readonly<Record<string, readonly TrendPoint[]>>;
+};
+
 export type DashboardData = {
   offers: readonly Offer[];
   history: readonly MarketSnapshot[];
   provenance: Provenance;
   reliabilityUnit: PercentUnit;
+  insights: MarketInsights;
 };
 
 export type IndexPoint = { timestamp: string; price: number | null };
