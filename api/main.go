@@ -37,6 +37,7 @@ func main() {
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		httpx.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
+	registerMarket(mux, cfg)
 
 	mux.Handle("POST /api/reservations", createReservation(db, noOffers{}))
 
