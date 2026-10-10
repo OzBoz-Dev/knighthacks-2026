@@ -5,13 +5,14 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters } from "@/lib/explore/types";
-import { buildMarketOverview, DEFAULT_FILTERS, getModelOffers, visibleModelOffers } from "@/lib/explore/selectors";
+import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, visibleModelOffers } from "@/lib/explore/selectors";
 import { ExploreToolbar } from "./explore-toolbar";
 import { MarketHeading } from "./market-hero";
 import { OfferFilters } from "./offer-filters";
 import { GpuOfferGrid } from "./gpu-offer-grid";
 import { OfferDetailsDrawer } from "./offer-details-drawer";
 import { MarketOverview } from "./market-overview";
+import { OfferTable } from "./offer-table";
 import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
@@ -24,6 +25,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
   const reliabilityUnit = data?.reliabilityUnit ?? "ratio";
   const models = useMemo(() => [...new Set(offers.map((o) => o.gpu_name))].sort(), [offers]);
   const regions = useMemo(() => [...new Set(offers.map((o) => o.region))].sort(), [offers]);
+  const filtered = useMemo(() => filterOffers(offers, filters, reliabilityUnit), [offers, filters, reliabilityUnit]);
   const representatives = useMemo(() => getModelOffers(offers, filters, reliabilityUnit), [offers, filters, reliabilityUnit]);
   const overview = useMemo(() => buildMarketOverview(offers, data?.history ?? []), [offers, data?.history]);
   const visibleCount = visibleModelOffers(representatives, expanded).length;
@@ -61,6 +63,7 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           onReset={resetFilters}
         />
       </section>
+      <OfferTable offers={filtered} reliabilityUnit={reliabilityUnit} onDetails={setSelectedOffer} />
       <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
       <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>

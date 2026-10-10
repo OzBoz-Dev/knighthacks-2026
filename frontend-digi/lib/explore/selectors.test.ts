@@ -36,6 +36,12 @@ describe("offer selection", () => {
     expect(filterOffers(sampleOffers, DEFAULT_FILTERS, "ratio")).toHaveLength(sampleOffers.length);
   });
 
+  it("keeps every filtered offer for the table, not one per model", () => {
+    const filters = { ...DEFAULT_FILTERS, model: "RTX 4090" };
+    expect(getModelOffers(sampleOffers, filters, "ratio")).toHaveLength(1);
+    expect(filterOffers(sampleOffers, filters, "ratio")).toHaveLength(sampleOffers.filter((o) => o.gpu_name === "RTX 4090").length);
+  });
+
   it("chooses a representative after filtering with a deterministic price/id tie-break", () => {
     const base = sampleOffers[0];
     const offers = [{ ...base, id: "b", price_per_hour: 2 }, { ...base, id: "a", price_per_hour: 2 }, { ...base, id: "c", price_per_hour: 3 }];
