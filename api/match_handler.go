@@ -30,7 +30,8 @@ func matchHandler(src vast.Source, medians func(context.Context) map[string]floa
 			return
 		}
 		// The frozen MatchResponse has no field for the suggestion, so the handler drops it.
-		resp, _, err := match.Run(snap.Offers, req, medians(r.Context()))
+		med := medians(r.Context())
+		resp, _, err := match.Run(withMarketPosition(snap.Offers, med), req, med)
 		if err == nil {
 			resp.RequestID, err = newID("req_")
 		}

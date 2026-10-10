@@ -100,7 +100,8 @@ func TestMatchUsesMedians(t *testing.T) {
 	medians := func(context.Context) map[string]float64 { return map[string]float64{"RTX 4090": 0.48} }
 	w := httptest.NewRecorder()
 	matchHandler(stubSource{snap: matchSnap}, medians).ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/match", strings.NewReader(validMatch)))
-	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "below the typical RTX 4090 price") {
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), "below the typical RTX 4090 price") ||
+		!strings.Contains(w.Body.String(), `"market_position_pct":-12.5`) {
 		t.Fatalf("status %d body %s", w.Code, w.Body)
 	}
 }
