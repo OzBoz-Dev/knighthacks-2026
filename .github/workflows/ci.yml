@@ -5,6 +5,25 @@ on:
     branches: [main]
 
 jobs:
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: collect the pull request title, body, and commit messages
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          printf '%s\n' "$PR_TITLE" > pr-title.txt
+          printf '%s\n' "$PR_BODY" > pr-body.txt
+          git fetch --no-tags origin "$BASE_REF"
+          git log --format=%B "origin/$BASE_REF..HEAD" > pr-commits.txt
+      - name: no emoji, em dash, or en dash
+        run: bash scripts/check-style.sh pr-title.txt pr-body.txt pr-commits.txt
+
   api:
     runs-on: ubuntu-latest
     defaults:
