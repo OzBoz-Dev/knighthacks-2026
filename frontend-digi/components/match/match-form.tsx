@@ -34,7 +34,7 @@ export function MatchForm({ values, errors, options, busy = false, actions, onCh
   return (
     <Paper component="form" onSubmit={submit} noValidate p="lg" withBorder aria-label="Match requirements">
       <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" verticalSpacing="md">
-        <NumberInput id={FIELD_IDS.minVram} label="Minimum total VRAM (GB)" description="Across all GPUs in the offer" min={0} allowNegative={false} value={values.minVram} onChange={(minVram) => onChange({ minVram })} error={errors.minVram} required />
+        <NumberInput id={FIELD_IDS.minVram} label="Minimum VRAM per GPU (GB)" description="Each GPU in the offer needs at least this much" min={0} allowNegative={false} value={values.minVram} onChange={(minVram) => onChange({ minVram })} error={errors.minVram} required />
         <NumberInput id={FIELD_IDS.maxPrice} label="Maximum hourly budget (USD)" description="For the whole offer" min={0} decimalScale={3} allowNegative={false} prefix="$" value={values.maxPrice} onChange={(maxPrice) => onChange({ maxPrice })} error={errors.maxPrice} required />
         <NumberInput id={FIELD_IDS.minReliability} label="Minimum reliability (%)" description="Default 95%" min={0} max={100} decimalScale={1} allowNegative={false} suffix="%" value={values.minReliability} onChange={(minReliability) => onChange({ minReliability })} error={errors.minReliability} required />
         <MultiSelect label="GPU models (optional)" description={choiceHint ?? "Leave empty to allow any model"} placeholder={values.gpuNames.length ? undefined : "Any model"} data={[...new Set([...choices.gpuNames, ...values.gpuNames])]} value={values.gpuNames} onChange={(gpuNames) => onChange({ gpuNames })} disabled={options.status !== "ready"} searchable clearable />

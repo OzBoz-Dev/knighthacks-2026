@@ -63,3 +63,10 @@ describe("buildMatchRequest", () => {
     expect(buildMatchRequest({ ...valid, minReliability: 99.2 }).request?.min_reliability).toBe(0.992);
   });
 });
+
+describe("VRAM validation wording", () => {
+  it("asks for VRAM per GPU and still sends min_vram_gb with the same number", () => {
+    expect(buildMatchRequest({ ...DEMO_PRESET, minVram: "" }).errors?.minVram).toBe("Enter the minimum VRAM per GPU in GB.");
+    expect(buildMatchRequest({ ...DEMO_PRESET, minVram: 40 }).request?.min_vram_gb).toBe(40);
+  });
+});

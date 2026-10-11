@@ -6,7 +6,7 @@ export type ExclusionKey = keyof MatchResponse["excluded"];
 export const EXCLUSION_ORDER: { key: ExclusionKey; label: string }[] = [
   { key: "gpu_model", label: "GPU model" },
   { key: "region", label: "Region" },
-  { key: "vram", label: "VRAM" },
+  { key: "vram", label: "VRAM per GPU" },
   { key: "reliability", label: "Reliability" },
   { key: "budget", label: "Budget" },
 ];
