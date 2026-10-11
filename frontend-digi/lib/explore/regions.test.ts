@@ -20,6 +20,11 @@ describe("regional globe aggregation", () => {
     expect(aggregateRegions([...sampleOffers].reverse())).toEqual(aggregateRegions(sampleOffers));
     expect(sampleOffers[0].id).toBe("sample-h100-west");
   });
+  it("maps live country codes from the API to centroids", () => {
+    for (const region of ["US", "JP", "CZ", "DE", "TW", "GB"]) {
+      expect(aggregateRegions([{ ...sampleOffers[0], region }])[0].coordinates).not.toBeNull();
+    }
+  });
   it("retains unknown regions without fabricated coordinates", () => {
     for (const region of ["Unknown", "Poland, PL", "__proto__"]) {
       expect(aggregateRegions([{ ...sampleOffers[0], region }])[0].coordinates).toBeNull();

@@ -1,7 +1,7 @@
 .panel { overflow: hidden; border: 1px solid var(--dg-rule); border-radius: 6px; background: var(--dg-surface); }
 .header { padding: 20px 22px 16px; border-bottom: 1px solid var(--dg-rule); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) 290px; }
-.globeStage { min-height: 410px; position: relative; overflow: hidden; background: #1b1d1f; }
+.globeStage { min-height: 410px; position: relative; overflow: hidden; background: #1b1d1f; -webkit-user-select: none; user-select: none; }
 .globe { display: block; width: 100%; height: 100%; min-height: 410px; max-height: 490px; cursor: grab; touch-action: none; }
 .globe:active { cursor: grabbing; }
 .stageCaption { position: absolute; top: 18px; left: 22px; pointer-events: none; z-index: 1; }
@@ -11,7 +11,7 @@
 .node { cursor: pointer; transition: r 250ms, fill 250ms; }
 .node:focus-visible { outline: none; stroke: #fff; stroke-width: 4; }
 .side { padding: 18px; border-left: 1px solid var(--dg-rule); min-width: 0; }
-.regionList { display: grid; gap: 5px; }
+.regionList { display: grid; gap: 5px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
 .regionRow { width: 100%; display: grid; grid-template-columns: 1fr auto; padding: 11px 10px; border: 1px solid transparent; border-radius: 4px; }
 .regionRow:hover { background: var(--dg-elevated); }
 .regionRow[aria-pressed='true'] { border-color: #FF6352; background: #2c3034; }

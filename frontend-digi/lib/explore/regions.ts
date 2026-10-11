@@ -2,11 +2,26 @@ import type { Offer } from "../api/types";
 import type { MarketSnapshot } from "./types";
 
 // Representative regional centroids, never provider or host coordinates.
+// The API sends ISO 3166-1 alpha-2 country codes; the dev fixtures use the named regions.
 const CENTROIDS: Record<string, [number, number]> = {
   "US West": [-120, 40], "US East": [-77, 38], "US Central": [-98, 39],
   "EU Central": [14, 51], "EU West": [2, 48], "EU North": [15, 60],
   "Asia Pacific": [120, 20], "Asia East": [125, 35], "Asia Southeast": [105, 10],
   "South America": [-60, -15], "Oceania": [135, -25],
+  AE: [54, 24], AR: [-64, -34], AT: [14, 47.5], AU: [134, -25],
+  BE: [4.5, 50.5], BG: [25, 43], BR: [-52, -10], CA: [-106, 56],
+  CH: [8, 47], CL: [-71, -33], CN: [104, 35], CO: [-73, 4],
+  CZ: [15.5, 49.8], DE: [10, 51], DK: [10, 56], EC: [-78, -1.5],
+  EE: [25, 59], ES: [-3.5, 40], FI: [26, 64], FR: [2, 46.5],
+  GB: [-2, 54], GR: [22, 39], HK: [114, 22.3], HR: [16, 45],
+  HU: [19.5, 47], ID: [113, -2], IE: [-8, 53], IL: [35, 31],
+  IN: [79, 22], IS: [-19, 65], IT: [12.5, 42.5], JP: [138, 36],
+  KR: [127.5, 36.5], LV: [25, 57], MX: [-102, 23], MY: [102, 4],
+  NL: [5.3, 52.2], NO: [9, 61], NZ: [174, -41], PH: [122, 12],
+  PL: [19, 52], PT: [-8, 39.5], QA: [51.2, 25.3], RO: [25, 46],
+  RU: [90, 60], SE: [16, 62], SG: [103.8, 1.35], SI: [14.8, 46],
+  SK: [19.5, 48.7], TH: [101, 15], TR: [35, 39], TW: [121, 23.7],
+  UA: [31, 49], US: [-98, 39], VN: [106, 14], ZA: [24, -29],
 };
 
 export type RegionNode = {

@@ -1,8 +1,9 @@
 "use client";
 
-import { AppShell, Box, Burger, Container, Group, NavLink, Stack, Text } from "@mantine/core";
+import { AppShell, Burger, Container, Group, NavLink, Stack, Text } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconCompass, IconReceipt, IconTarget } from "@tabler/icons-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -34,7 +35,7 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         <AppShell.Section pt="xs" pb={36}>
           <Burger hiddenFrom="sm" opened={opened} onClick={close} size="sm" mb="md" aria-label="Close navigation" />
           <Group renderRoot={(props) => <Link {...props} href="/" onClick={close} />} gap={10} wrap="nowrap" style={{ textDecoration: "none" }}>
-            <Box w={16} h={16} bg="lava.5" style={{ borderRadius: 2 }} aria-hidden />
+            <Image src="/solGPU.png" width={325} height={304} alt="" aria-hidden style={{ width: 33, height: "auto" }} />
             <Text fw={650} fz={20} c="dark.0" lh={1} style={{ letterSpacing: "-0.4px" }}>solGPU</Text>
           </Group>
         </AppShell.Section>
