@@ -15,8 +15,8 @@ describe("buildReservationTransaction", () => {
     expect(instruction.programId.toBase58()).toBe("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
   });
 
-  it("writes the DG1 memo text", () => {
-    expect(new TextDecoder().decode(instruction.data)).toBe(`DG1|res_01|${payloadHash}`);
+  it("writes the SG1 memo text that the API expects", () => {
+    expect(new TextDecoder().decode(instruction.data)).toBe(`SG1|res_01|${payloadHash}`);
   });
 
   it("makes the wallet the fee payer and the only signer", () => {
