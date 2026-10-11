@@ -8,11 +8,12 @@ import type { MarketOverviewData } from "@/lib/explore/types";
 import { LazyWalletButton } from "@/components/solana/lazy-wallet-button";
 import styles from "./explore.module.css";
 
-export function ExploreToolbar({ search, onSearch, overview, sample }: {
+export function ExploreToolbar({ search, onSearch, overview, sample, searchDisabled }: {
   search: string;
   onSearch: (value: string) => void;
   overview: MarketOverviewData;
   sample: boolean;
+  searchDisabled: boolean;
 }) {
   const [indexOpened, indexModal] = useDisclosure(false);
   const ChangeIcon = (overview.change ?? 0) > 0 ? IconArrowUpRight : IconArrowDownRight;
@@ -30,7 +31,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
           rightSection={search ? <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Clear search" onClick={() => onSearch("")}><IconX size={14} /></ActionIcon> : null}
           value={search}
           onChange={(event) => onSearch(event.currentTarget.value)}
-          disabled={!sample}
+          disabled={searchDisabled}
           mb={10}
         />
         <Group className={styles.toolbarActions} gap={8} wrap="nowrap" justify="space-between">
@@ -51,11 +52,18 @@ export function ExploreToolbar({ search, onSearch, overview, sample }: {
         </Group>
       </Box>
       <Modal opened={indexOpened} onClose={indexModal.close} title="About the GPU index" centered>
-        <Stack gap="sm">
-          <Text size="sm">This preview index is the equal-weight average of model-median hourly quotes for a fixed basket of single-GPU models.</Text>
-          <Text size="sm" c="dimmed">The price-history chart uses the same series. Its change compares the first and last points of an illustrative 24-hour sample window. Offer filters do not change the index.</Text>
-          <Text size="sm" c="lava.3">Synthetic development data, not a live market benchmark or Databricks output.</Text>
-        </Stack>
+        {sample ? (
+          <Stack gap="sm">
+            <Text size="sm">This preview index is the equal-weight average of model-median hourly quotes for a fixed basket of single-GPU models.</Text>
+            <Text size="sm" c="dimmed">The price-history chart uses the same series. Its change compares the first and last points of an illustrative 24-hour sample window. Offer filters do not change the index.</Text>
+            <Text size="sm" c="lava.3">Synthetic development data, not a live market benchmark or Databricks output.</Text>
+          </Stack>
+        ) : (
+          <Stack gap="sm">
+            <Text size="sm">The GPU index is the equal-weight average of the median single-GPU hourly price for a fixed basket of models. Databricks calculates it in gold.gpu_price_index.</Text>
+            <Text size="sm" c="dimmed">The solGPU API does not serve the index yet, so it is not shown. solGPU never calculates it from the offers on this page.</Text>
+          </Stack>
+        )}
       </Modal>
     </>
   );

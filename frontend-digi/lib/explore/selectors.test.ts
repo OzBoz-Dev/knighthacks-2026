@@ -169,6 +169,15 @@ describe("offer selection", () => {
     expect(filterOffers(sampleOffers, DEFAULT_FILTERS, "ratio")).toHaveLength(sampleOffers.length);
   });
 
+  it("filters on VRAM per GPU, as #36 decided, so 2 x 12 GB fails a 24 GB minimum", () => {
+    const base = sampleOffers[0];
+    const twoBy12 = { ...base, id: "two-by-12", num_gpus: 2, gpu_ram_gb: 12, total_vram_gb: 24 };
+    const oneBy24 = { ...base, id: "one-by-24", num_gpus: 1, gpu_ram_gb: 24, total_vram_gb: 24 };
+    const filters = { ...DEFAULT_FILTERS, minVram: 24 };
+    expect(filterOffers([twoBy12, oneBy24], filters, "ratio").map((o) => o.id)).toEqual(["one-by-24"]);
+    expect(largestExclusion([twoBy12], filters, "ratio")).toEqual({ label: "Min VRAM per GPU", count: 1 });
+  });
+
   it("keeps every filtered offer for the table, not one per model", () => {
     const filters = { ...DEFAULT_FILTERS, model: "RTX 4090" };
     expect(getModelOffers(sampleOffers, filters, "ratio")).toHaveLength(1);

@@ -49,17 +49,19 @@ export function ErrorState({
   title = "Something went wrong",
   message,
   onRetry,
+  retrying = false,
 }: {
   title?: string;
   message: ReactNode;
   onRetry?: () => void;
+  retrying?: boolean;
 }) {
   return (
     <Alert color="red" title={title} role="alert">
       <Stack gap="sm" align="flex-start">
         <Text size="sm">{message}</Text>
         {onRetry && (
-          <Button size="xs" variant="light" color="red" onClick={onRetry}>
+          <Button size="xs" variant="light" color="red" onClick={onRetry} loading={retrying}>
             Retry
           </Button>
         )}

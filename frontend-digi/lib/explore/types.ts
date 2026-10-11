@@ -25,6 +25,8 @@ export type MarketSnapshot = {
 
 export type MarketInsights = {
   provenance: Provenance<InsightsSource>;
+  // The trends come from their own API call, so their source and time can differ from the summary.
+  trendProvenance?: Provenance<InsightsSource>;
   summaries: readonly MarketSummary[];
   trends: Readonly<Record<string, readonly TrendPoint[]>>;
 };

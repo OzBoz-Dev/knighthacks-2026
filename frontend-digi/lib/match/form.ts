@@ -47,7 +47,7 @@ export function buildMatchRequest(values: MatchFormValues): { request: MatchRequ
   const maxPrice = finite(values.maxPrice);
   const reliability = finite(values.minReliability);
   const errors: MatchFormErrors = {};
-  if (minVram === null) errors.minVram = "Enter the minimum total VRAM in GB.";
+  if (minVram === null) errors.minVram = "Enter the minimum VRAM per GPU in GB.";
   else if (minVram < 0) errors.minVram = "VRAM can't be negative.";
   if (maxPrice === null) errors.maxPrice = "Enter your maximum hourly budget.";
   else if (maxPrice <= 0) errors.maxPrice = "The budget must be more than $0/hour.";
