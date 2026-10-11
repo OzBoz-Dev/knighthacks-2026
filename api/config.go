@@ -12,7 +12,7 @@ import (
 // Config holds every API setting. It is read once at start.
 type Config struct {
 	Port                  string
-	AllowedOrigin         string
+	AllowedOrigins        []string
 	DBPath                string
 	SnapshotDir           string
 	VastAPIKey            string
@@ -35,7 +35,7 @@ func loadConfig(getenv func(string) string) (Config, error) {
 	}
 	c := Config{
 		Port:                  get("PORT", "8000"),
-		AllowedOrigin:         get("ALLOWED_ORIGIN", "http://localhost:3000"),
+		AllowedOrigins:        splitOrigins(get("ALLOWED_ORIGIN", "http://localhost:3000")),
 		DBPath:                get("DB_PATH", "data/digigpu.db"),
 		SnapshotDir:           get("SNAPSHOT_DIR", "data/snapshots"),
 		VastAPIKey:            get("VAST_API_KEY", ""),
@@ -70,6 +70,17 @@ func loadConfig(getenv func(string) string) (Config, error) {
 		return c, errors.New("SOLANA_RPC_URL must be a devnet URL")
 	}
 	return c, nil
+}
+
+// splitOrigins reads a comma-separated origin list. It removes spaces, a trailing slash, and empty items.
+func splitOrigins(s string) []string {
+	var out []string
+	for _, o := range strings.Split(s, ",") {
+		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
+			out = append(out, o)
+		}
+	}
+	return out
 }
 
 // loadDotEnv sets each KEY=VALUE line of path that the environment does not set yet.

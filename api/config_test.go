@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -56,8 +57,21 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Port != "8000" || !c.UseVastFixture || !c.UseDatabricksFixture || c.SolanaRPCURL != "https://api.devnet.solana.com" {
+	if c.Port != "8000" || !c.UseVastFixture || !c.UseDatabricksFixture || c.SolanaRPCURL != "https://api.devnet.solana.com" ||
+		!slices.Equal(c.AllowedOrigins, []string{"http://localhost:3000"}) {
 		t.Fatalf("unexpected defaults: %+v", c)
+	}
+}
+
+func TestLoadConfigOriginList(t *testing.T) {
+	c, err := loadConfig(envFrom(map[string]string{"USE_VAST_FIXTURE": "1", "USE_DATABRICKS_FIXTURE": "1",
+		"ALLOWED_ORIGIN": " https://frontend-digi-theta.vercel.app/ , http://localhost:3000,,http://localhost:3001 "}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"https://frontend-digi-theta.vercel.app", "http://localhost:3000", "http://localhost:3001"}
+	if !slices.Equal(c.AllowedOrigins, want) {
+		t.Fatalf("origins = %q, want %q", c.AllowedOrigins, want)
 	}
 }
 

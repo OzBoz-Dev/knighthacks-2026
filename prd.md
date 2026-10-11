@@ -715,8 +715,8 @@ Handler recovery can produce 500 on any endpoint. Read-only requests can be retr
 POST handlers limit body reads to 64 KiB and reject unknown JSON object fields. The Go struct decoder supplies zero values for omitted scalar fields.
 Send the complete intended request rather than rely on omission as a default.
 
-CORS allows the single origin configured by `ALLOWED_ORIGIN`, with `GET`, `POST`, and the `Content-Type` request header.
-A matching browser preflight returns 204 with no JSON body. CORS is not API authentication.
+CORS allows each origin in the comma-separated `ALLOWED_ORIGIN` list, with `GET`, `POST`, and the `Content-Type` request header.
+A preflight from a listed origin returns 204 with no JSON body. CORS is not API authentication.
 
 ### Canonical reservation payload
 
