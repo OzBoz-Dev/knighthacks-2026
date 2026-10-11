@@ -13,7 +13,7 @@ import (
 type Config struct {
 	Port                  string
 	AllowedOrigins        []string
-	DBPath               string
+	DBPath                string
 	SnapshotDir           string
 	VastAPIKey            string
 	UseVastFixture        bool
