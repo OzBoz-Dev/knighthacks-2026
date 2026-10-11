@@ -3,7 +3,7 @@
 import { Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
 import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
@@ -20,7 +20,7 @@ import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
 
-export function ExploreDashboard({ data, error }: { data: DashboardData | null; error?: string }) {
+export function ExploreDashboard({ data, error, insights }: { data: DashboardData | null; error?: string; insights?: ReactNode }) {
   const [filters, setFilters] = useState<Filters>({ ...DEFAULT_FILTERS });
   const [expanded, setExpanded] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
@@ -80,7 +80,7 @@ export function ExploreDashboard({ data, error }: { data: DashboardData | null; 
           onReset={resetFilters}
         />
       </section>
-      {data && <MarketInsights insights={data.insights} models={models} />}
+      {insights ?? (data && <MarketInsights insights={data.insights} models={models} />)}
       <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
       {/* The overview needs price history, which only the development samples have. The API has no history endpoint yet. */}
       {sample && <MarketOverview overview={overview} sample onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />}
