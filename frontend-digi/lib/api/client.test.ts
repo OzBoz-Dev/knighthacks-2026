@@ -116,6 +116,14 @@ describe("apiRequest", () => {
     expect(error.message).not.toContain("secret");
   });
 
+  it("shows the message from the API error body", async () => {
+    const body = { error: { code: "bad_request", message: "The offer is not in that snapshot." } };
+    const fetchImpl = vi.fn(async () => jsonResponse(body, 400));
+    const error = await expectApiError(apiRequest("/api/x", { baseUrl: BASE, fetchImpl }), "http");
+    expect(error.status).toBe(400);
+    expect(error.message).toBe("The offer is not in that snapshot.");
+  });
+
   it("reads the API error code and its user-facing message", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ error: { code: "upstream_unavailable", message: "No offers are available now. Try again in a minute." } }, 503));
     const error = await expectApiError(apiRequest("/api/offers", { baseUrl: BASE, fetchImpl }), "http");

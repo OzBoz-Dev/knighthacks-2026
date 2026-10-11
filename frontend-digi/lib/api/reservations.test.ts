@@ -4,8 +4,6 @@ import { ApiError } from "./client";
 import {
   confirmReservation,
   createReservation,
-  decodeConfirmResponse,
-  decodeCreatedReservation,
   decodeReservationList,
   decodeVerifyResult,
   getReservations,
@@ -96,87 +94,6 @@ describe("decodeVerifyResult", () => {
   });
 });
 
-describe("createReservation", () => {
-  const request = fixture.create.request;
-
-  it("posts the request once and returns the new pending reservation", async () => {
-    const fetchImpl = vi.fn(async () => json(fixture.create.response, 201));
-    const created = await createReservation(request, { baseUrl: BASE, fetchImpl });
-    expect(created.status).toBe("pending");
-    expect(created.canonical_payload).toBe(fixture.create.response.canonical_payload);
-    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe(`${BASE}/api/reservations`);
-    expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual(request);
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-  });
-
-  it("rejects a response for another offer or one that is not pending", () => {
-    expect(() => decodeCreatedReservation({ ...fixture.create.response, offer_id: "999" }, request)).toThrow(/offer_id/);
-    expect(() => decodeCreatedReservation(fixture.confirm.response, request)).toThrow(/pending/);
-  });
-
-  it("reports a bad request with its code and does not retry", async () => {
-    const fetchImpl = vi.fn(async () => json({ error: { code: "bad_request", message: "The offer is not in that snapshot." } }, 400));
-    const error = await createReservation(request, { baseUrl: BASE, fetchImpl }).catch((e: unknown) => e);
-    expect((error as ApiError).code).toBe("bad_request");
-    expect((error as ApiError).message).toBe("The offer is not in that snapshot.");
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("confirmReservation", () => {
-  const SIG: string = fixture.confirm.request.signature;
-  const confirmed = () => structuredClone(fixture.confirm.response);
-  const withoutFailedChecks = () => {
-    const body = confirmed();
-    delete body.failed_checks;
-    return body;
-  };
-
-  it("posts the signature once and returns the confirmed reservation", async () => {
-    const fetchImpl = vi.fn(async () => json(confirmed()));
-    const result = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl });
-    expect(result.status).toBe("confirmed");
-    expect(result.failed_checks).toEqual([]);
-    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe(`${BASE}/api/reservations/${CONFIRMED_ID}/confirm`);
-    expect(JSON.parse(String(init.body))).toEqual({ signature: SIG });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps a failed reservation with HTTP 200 as a failed result with its reasons", () => {
-    const failed = { ...confirmed(), status: "failed", slot: null, failed_checks: ["memo_hash"] };
-    const result = decodeConfirmResponse(failed, CONFIRMED_ID, SIG);
-    expect(result.status).toBe("failed");
-    expect(result.failed_checks).toEqual(["memo_hash"]);
-  });
-
-  it("rejects a status and failed_checks that disagree, an unknown check, or another signature", () => {
-    expect(() => decodeConfirmResponse({ ...confirmed(), failed_checks: ["signer"] }, CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
-    expect(() => decodeConfirmResponse({ ...confirmed(), status: "failed", slot: null }, CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
-    expect(() => decodeConfirmResponse({ ...confirmed(), status: "failed", slot: null, failed_checks: ["amount"] }, CONFIRMED_ID, SIG)).toThrow(/known check/);
-    expect(() => decodeConfirmResponse(withoutFailedChecks(), CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
-    expect(() => decodeConfirmResponse(confirmed(), CONFIRMED_ID, "other")).toThrow(/signature/);
-    expect(() => decodeConfirmResponse(confirmed(), "res_other", SIG)).toThrow(/reservation\.id/);
-  });
-
-  it("reports a 503 for a transaction devnet has not returned yet, without a retry", async () => {
-    const fetchImpl = vi.fn(async () => json({ error: { code: "upstream_unavailable", message: "Solana devnet hasn't returned your transaction yet. Try again in a few seconds." } }, 503));
-    const error = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl }).catch((e: unknown) => e);
-    expect((error as ApiError).status).toBe(503);
-    expect((error as ApiError).code).toBe("upstream_unavailable");
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-  });
-
-  it("refuses a blank id or signature before any request", async () => {
-    const fetchImpl = vi.fn();
-    await expect(confirmReservation("", SIG, { baseUrl: BASE, fetchImpl })).rejects.toThrow(/required/);
-    await expect(confirmReservation(CONFIRMED_ID, " ", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/required/);
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-});
-
 describe("getReservations and verifyReservation", () => {
   it("lists the reservations of the wallet with the wallet in the query", async () => {
     const fetchImpl = vi.fn(async () => json(fixture.list.response));
@@ -207,6 +124,76 @@ describe("getReservations and verifyReservation", () => {
     const fetchImpl = vi.fn();
     await expect(getReservations(" ", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/wallet/);
     await expect(verifyReservation("", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/id/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("createReservation", () => {
+  const body = () => structuredClone(fixture.create.request);
+  const created = () => structuredClone(fixture.create.response) as any;
+
+  it("posts the exact body and returns the pending reservation", async () => {
+    const fetchImpl = vi.fn(async () => json(created(), 201));
+    const reservation = await createReservation(body(), { baseUrl: BASE, fetchImpl });
+    expect(reservation.payload_hash).toBe(fixture.create.response.payload_hash);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/reservations`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual(fixture.create.request);
+  });
+
+  it("rejects a reservation for another wallet or one that is not pending", async () => {
+    const other = vi.fn(async () => json({ ...created(), wallet: "OtherWallet111111111111111111111111111111111" }, 201));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl: other })).rejects.toMatchObject({ kind: "invalid_response" });
+    const signed = vi.fn(async () => json({ ...created(), status: "failed", signature: "sig" }, 201));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl: signed })).rejects.toMatchObject({ kind: "invalid_response" });
+  });
+
+  it("shows the API error message and sends one request only", async () => {
+    const fetchImpl = vi.fn(async () => json({ error: { code: "bad_request", message: "The offer is not in that snapshot." } }, 400));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl })).rejects.toMatchObject({ kind: "http", status: 400, message: "The offer is not in that snapshot." });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("confirmReservation", () => {
+  const SIG: string = fixture.confirm.request.signature;
+  const confirmed = () => structuredClone(fixture.confirm.response) as any;
+
+  it("posts the signature and returns the confirmed reservation", async () => {
+    const fetchImpl = vi.fn(async () => json(confirmed()));
+    const result = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl });
+    expect(result.reservation.status).toBe("confirmed");
+    expect(result.failed_checks).toEqual([]);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/reservations/${CONFIRMED_ID}/confirm`);
+    expect(JSON.parse(init.body as string)).toEqual({ signature: SIG });
+  });
+
+  it("returns a failed reservation with the names of the failed checks", async () => {
+    const fetchImpl = vi.fn(async () => json({ ...confirmed(), status: "failed", slot: null, failed_checks: ["memo_hash"] }));
+    const result = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl });
+    expect(result.reservation.status).toBe("failed");
+    expect(result.failed_checks).toEqual(["memo_hash"]);
+  });
+
+  it("rejects a result for another signature, a missing check list, or a status that contradicts the checks", async () => {
+    const cases = [
+      { ...confirmed(), signature: "OtherSignature" },
+      { ...confirmed(), failed_checks: undefined },
+      { ...confirmed(), failed_checks: ["signer"] },
+      { ...confirmed(), status: "failed", failed_checks: [] },
+      { ...confirmed(), status: "pending", signature: SIG, slot: null },
+    ];
+    for (const data of cases) {
+      const fetchImpl = vi.fn(async () => json(data));
+      await expect(confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl })).rejects.toMatchObject({ kind: "invalid_response" });
+    }
+  });
+
+  it("refuses a blank id or signature before any request", async () => {
+    const fetchImpl = vi.fn();
+    await expect(confirmReservation(CONFIRMED_ID, " ", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/signature/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

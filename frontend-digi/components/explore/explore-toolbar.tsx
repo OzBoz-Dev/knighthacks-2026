@@ -1,10 +1,11 @@
 "use client";
 
-import { ActionIcon, Badge, Box, Button, Group, Modal, Stack, Text, TextInput, Tooltip, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Group, Modal, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowDownRight, IconArrowUpRight, IconInfoCircle, IconSearch, IconWallet, IconX } from "@tabler/icons-react";
+import { IconArrowDownRight, IconArrowUpRight, IconInfoCircle, IconSearch, IconX } from "@tabler/icons-react";
 import { formatSignedPercent, formatUsdPerHour } from "@/lib/format";
 import type { MarketOverviewData } from "@/lib/explore/types";
+import { LazyWalletButton } from "@/components/solana/lazy-wallet-button";
 import styles from "./explore.module.css";
 
 export function ExploreToolbar({ search, onSearch, overview, sample, searchDisabled }: {
@@ -15,7 +16,6 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
   searchDisabled: boolean;
 }) {
   const [indexOpened, indexModal] = useDisclosure(false);
-  const [walletOpened, walletModal] = useDisclosure(false);
   const ChangeIcon = (overview.change ?? 0) > 0 ? IconArrowUpRight : IconArrowDownRight;
   const changeColor = overview.change === null || overview.change === 0 ? "dimmed" : overview.change > 0 ? "var(--dg-up)" : "green.4";
 
@@ -48,11 +48,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
             </Box>
             <IconInfoCircle size={14} color="var(--mantine-color-dimmed)" aria-hidden />
           </UnstyledButton>
-          <Tooltip label="Preview only — wallet integration is pending">
-            <Button variant="default" size="sm" onClick={walletModal.open} leftSection={<IconWallet size={17} aria-hidden />} rightSection={<Badge size="sm" color="gray" variant="outline" tt="none">Preview</Badge>}>
-              Connect Phantom
-            </Button>
-          </Tooltip>
+          <LazyWalletButton />
         </Group>
       </Box>
       <Modal opened={indexOpened} onClose={indexModal.close} title="About the GPU index" centered>
@@ -68,13 +64,6 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
             <Text size="sm" c="dimmed">The solGPU API does not serve the index yet, so it is not shown. solGPU never calculates it from the offers on this page.</Text>
           </Stack>
         )}
-      </Modal>
-      <Modal opened={walletOpened} onClose={walletModal.close} title="Phantom integration is coming next" centered>
-        <Stack gap="md">
-          <Text size="sm">This dashboard is an interactive preview. No wallet is connected and no transaction will be requested.</Text>
-          <Text size="sm" c="dimmed">The eventual reservation flow will use Phantom on Solana devnet to sign reservation intents. These are not real GPU bookings or payments.</Text>
-          <Button onClick={walletModal.close} variant="light">Back to exploring</Button>
-        </Stack>
       </Modal>
     </>
   );

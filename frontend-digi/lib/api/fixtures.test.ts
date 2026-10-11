@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { decodeMarketSummary, decodeOffer, decodeOffersEnvelope, decodeSummaryEnvelope, decodeTrendPoint, decodeTrendsEnvelope, list, record, text, timestamp } from "./decode";
 import { decodeMatchResponse } from "./match";
-import { decodeConfirmResponse, decodeCreatedReservation, decodeReservationList, decodeVerifyResult } from "./reservations";
+import { decodeConfirmResult, decodeCreatedReservation, decodeReservationList, decodeVerifyResult } from "./reservations";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Each shared contract fixture goes through the frontend decoders, so a fixture and a type cannot drift apart.
@@ -35,7 +35,7 @@ const CASES: [string, () => any, (value: any) => unknown][] = [
   ["match.json response", () => match.response, decodeMatchResponse],
   ["reservations.json create.response", () => reservations.create.response, (v) => decodeCreatedReservation(v, reservations.create.request)],
   ["reservations.json list.response", () => reservations.list.response, (v) => decodeReservationList(v, reservations.list.request.wallet)],
-  ["reservations.json confirm.response", () => reservations.confirm.response, (v) => decodeConfirmResponse(v, reservations.confirm.response.id, reservations.confirm.request.signature)],
+  ["reservations.json confirm.response", () => reservations.confirm.response, (v) => decodeConfirmResult(v, reservations.confirm.response.id, reservations.confirm.request.signature)],
   ["reservations.json verify.response", () => reservations.verify.response, (v) => decodeVerifyResult(v, reservations.verify.response.reservation_id)],
   ["databricks_market.json", () => gold, decodeExport],
 ];

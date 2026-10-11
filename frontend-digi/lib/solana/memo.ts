@@ -3,8 +3,8 @@ import { Buffer } from "buffer";
 import { PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
 import type { Reservation } from "../api/types";
 
-// The verifier uses the same prefix to find a digiGPU memo. Issue #41 chose DG1.
-export const MEMO_PREFIX = "DG1";
+// The Go verifier (api/reservation.MemoPrefix) uses the same prefix to find a solGPU memo. Issue #41 chose SG1.
+export const MEMO_PREFIX = "SG1";
 export const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
 
 export function buildReservationTransaction(
