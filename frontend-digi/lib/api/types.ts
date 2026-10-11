@@ -82,3 +82,5 @@ export type Reservation = {
   signature: string | null;
   slot: number | null;
 };
+
+export type * from "./responses";
