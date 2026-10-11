@@ -77,7 +77,7 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError("http", `The solGPU API responded with status ${response.status}.`, {
+    throw new ApiError("http", (await errorMessage(response)) ?? `The solGPU API responded with status ${response.status}.`, {
       status: response.status,
     });
   }
@@ -97,6 +97,16 @@ export async function apiRequest<T>(
     return decode(data);
   } catch (cause) {
     throw new ApiError("invalid_response", "The solGPU API returned unexpected data.", { cause });
+  }
+}
+
+// The API writes {"error":{"code","message"}} and keeps the message safe to show. Any other body is never shown.
+async function errorMessage(response: Response): Promise<string | undefined> {
+  try {
+    const message = ((await response.json()) as { error?: { message?: unknown } } | null)?.error?.message;
+    return typeof message === "string" && message.trim() ? message : undefined;
+  } catch {
+    return undefined;
   }
 }
 

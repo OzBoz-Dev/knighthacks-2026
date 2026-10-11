@@ -116,6 +116,14 @@ describe("apiRequest", () => {
     expect(error.message).not.toContain("secret");
   });
 
+  it("shows the message from the API error body", async () => {
+    const body = { error: { code: "bad_request", message: "The offer is not in that snapshot." } };
+    const fetchImpl = vi.fn(async () => jsonResponse(body, 400));
+    const error = await expectApiError(apiRequest("/api/x", { baseUrl: BASE, fetchImpl }), "http");
+    expect(error.status).toBe(400);
+    expect(error.message).toBe("The offer is not in that snapshot.");
+  });
+
   it("reports malformed JSON as an invalid response", async () => {
     const fetchImpl = vi.fn(async () => new Response("{not json", { status: 200 }));
     await expectApiError(apiRequest("/api/x", { baseUrl: BASE, fetchImpl }), "invalid_response");

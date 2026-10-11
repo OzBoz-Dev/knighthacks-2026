@@ -1,6 +1,6 @@
 import { apiRequest, type RequestOptions } from "./client";
 import { count, fail, flag, list, number, record, text } from "./decode";
-import type { Reservation } from "./types";
+import type { MatchRequest, Reservation } from "./types";
 
 type Options = Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl">;
 
@@ -81,4 +81,49 @@ export function getReservations(wallet: string, options: Options = {}): Promise<
 export function verifyReservation(id: string, options: Options = {}): Promise<VerifyResult> {
   if (!id.trim()) return Promise.reject(new Error("A reservation id is required."));
   return apiRequest(`/api/reservations/${encodeURIComponent(id)}/verify`, { ...options, decode: (data: unknown) => decodeVerifyResult(data, id) });
+}
+
+// The body of POST /api/reservations (createReservationRequest in api/reservations.go). The API rejects unknown fields.
+export type CreateReservationBody = {
+  request_id: string;
+  snapshot_id: string;
+  offer_id: string;
+  wallet: string;
+  min_vram_gb: number;
+  max_price_per_hour: number;
+  priority: MatchRequest["priority"];
+  region: string | null;
+};
+
+export type ConfirmResult = { reservation: Reservation; failed_checks: VerifyCheckName[] };
+
+// The API sets the GPU and the price from the offer, so only the values the user sent are compared.
+export function decodeCreatedReservation(data: unknown, body: CreateReservationBody): Reservation {
+  const r = decodeReservation(data);
+  const sent: (keyof CreateReservationBody)[] = ["request_id", "snapshot_id", "offer_id", "wallet", "region"];
+  sent.forEach((key) => { if (r[key] !== body[key]) fail(`reservation.${key}`, "is not the value that was sent"); });
+  if (r.status !== "pending" || r.signature !== null) fail("reservation", "is not a new pending reservation");
+  return r;
+}
+
+export function decodeConfirmResult(data: unknown, id: string, signature: string): ConfirmResult {
+  const reservation = decodeReservation(data);
+  const failed = list(record(data, "confirm").failed_checks, "failed_checks").map((name, i) => VERIFY_CHECKS.find((n) => n === name) ?? fail(`failed_checks[${i}]`, "is not a known check"));
+  if (reservation.id !== id) fail("reservation.id", "is not the requested reservation");
+  if (reservation.signature !== signature) fail("reservation.signature", "is not the signature that was sent");
+  if (reservation.status === "pending") fail("reservation.status", "is still pending after confirm");
+  // A confirmed reservation with a failed check, or a failed one with none, is a contradiction and never shown.
+  if ((reservation.status === "confirmed") !== (failed.length === 0)) fail("failed_checks", "do not match the status");
+  return { reservation, failed_checks: failed };
+}
+
+// A mutation: apiRequest never retries, so one call creates at most one reservation.
+export function createReservation(body: CreateReservationBody, options: Options = {}): Promise<Reservation> {
+  return apiRequest("/api/reservations", { ...options, method: "POST", body, decode: (data: unknown) => decodeCreatedReservation(data, body) });
+}
+
+// The API keeps one signature per reservation, so a retry must send the same signature again.
+export function confirmReservation(id: string, signature: string, options: Options = {}): Promise<ConfirmResult> {
+  if (!id.trim() || !signature.trim()) return Promise.reject(new Error("A reservation id and a signature are required."));
+  return apiRequest(`/api/reservations/${encodeURIComponent(id)}/confirm`, { ...options, method: "POST", body: { signature }, decode: (data: unknown) => decodeConfirmResult(data, id, signature) });
 }
