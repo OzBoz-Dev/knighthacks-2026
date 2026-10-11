@@ -34,9 +34,13 @@ export function GpuOfferGrid({ offers, reliabilityUnit, expanded, hasData, exclu
   if (!firstFour.length) {
     return (
       <EmptyState
-        title={hasData ? "No models match your filters" : "Inventory is not connected yet"}
-        description={hasData ? (exclusion ? `${exclusion.label} removed ${exclusion.count} ${exclusion.count === 1 ? "offer" : "offers"}. Change that filter or reset all filters.` : "No offers are available right now.") : "Enable development fixtures to explore the interactive sample dashboard, or connect real inventory in a future integration."}
-        action={hasData ? <Button variant="default" size="sm" onClick={onReset}>Reset filters</Button> : undefined}
+        title={!hasData ? "No inventory to show" : exclusion ? "No models match your filters" : "No offers in this snapshot"}
+        description={!hasData
+          ? "Offers appear here when the solGPU API answers."
+          : exclusion
+            ? `${exclusion.label} removed ${exclusion.count} ${exclusion.count === 1 ? "offer" : "offers"}. Change that filter or reset all filters.`
+            : "The API returned no offers. Check again in a few minutes."}
+        action={exclusion ? <Button variant="default" size="sm" onClick={onReset}>Reset filters</Button> : undefined}
       />
     );
   }

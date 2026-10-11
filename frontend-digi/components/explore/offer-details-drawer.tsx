@@ -61,7 +61,9 @@ export function OfferDetailsDrawer({ offer, onClose, provenance, reliabilityUnit
           ["Against typical price", formatSignedPercent(offer.market_position_pct, "percent")],
         ]} />
         <Group><DataSourceLabel provenance={provenance} compact /></Group>
-        <Alert color="gray" title="Preview offer">This is a synthetic listing. GPU access, booking, wallet connection, and reservation signing are not available in this preview.</Alert>
+        {provenance.source === "dev-sample"
+          ? <Alert color="gray" title="Preview offer">This is a synthetic listing. GPU access, booking, wallet connection, and reservation signing are not available in this preview.</Alert>
+          : <Alert color="gray" title="Vast.ai offer">This offer comes from the snapshot named above. solGPU does not book GPUs or take payments. A reservation is a signed intent on Solana devnet.</Alert>}
         <Button component={Link} href="/match" variant="default">Find a match</Button>
       </Stack>}
     </Drawer>
