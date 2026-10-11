@@ -4,8 +4,9 @@ import { useMemo, type ReactNode } from "react";
 import type { ConnectionConfig } from "@solana/web3.js";
 import type { WalletError } from "@solana/wallet-adapter-base";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { getSolanaConfig } from "@/lib/solana/network";
+import { SolBalanceProvider } from "./balance-provider";
+import { WalletConnectModalProvider } from "./wallet-modal";
 
 const connectionConfig: ConnectionConfig = {
   commitment: "confirmed",
@@ -25,7 +26,9 @@ export function SolanaWalletProvider({ children }: { children: ReactNode }) {
   return (
     <ConnectionProvider endpoint={endpoint} config={connectionConfig}>
       <WalletProvider wallets={wallets} autoConnect localStorageKey="digigpu-wallet" onError={onError}>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletConnectModalProvider>
+          <SolBalanceProvider>{children}</SolBalanceProvider>
+        </WalletConnectModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
