@@ -73,6 +73,7 @@ export function ReservationList() {
                   selected={selected}
                   focusNow={selected && focusedFor !== focusKey}
                   onFocused={markFocused}
+                  onChanged={retry}
                 />
               );
             })}

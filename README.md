@@ -117,7 +117,7 @@ Two files hold settings. Never commit either file. Restart the API or the web de
 | Variable | Secret | Where it runs | Default | Purpose |
 |---|---|---|---|---|
 | `NEXT_PUBLIC_API_URL` | No | Browser | None. Required. | API base URL, for example `http://localhost:8000`. |
-| `NEXT_PUBLIC_SOLANA_RPC` | No | Browser | None | Solana devnet RPC URL for the browser, for example `https://api.devnet.solana.com`. |
+| `NEXT_PUBLIC_SOLANA_RPC` | No | Browser | `https://api.devnet.solana.com` | Solana devnet RPC URL for the browser. The app refuses a URL that names mainnet. |
 | `NEXT_PUBLIC_USE_DEV_FIXTURES` | No | Browser | Unset | Set to `1` to show a sample dashboard. It works only with `npm run dev`. |
 
 Every `NEXT_PUBLIC_` value reaches the browser. Never put a key or token in one.

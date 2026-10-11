@@ -729,7 +729,7 @@ The API builds `canonical_payload` once and stores it. The frontend hashes that 
 - Status, signature, and slot are not part of the canonical payload. Later confirmation does not change its bytes.
 
 Memo format accepted by the Go API: `SG1|<reservation_id>|<payload_hash>`.
-The P3 signer must use the same prefix. An older frontend that emits `DG1` does not satisfy this API contract.
+The frontend signer (`frontend-digi/lib/solana/memo.ts`) uses the same `SG1` prefix.
 
 ---
 

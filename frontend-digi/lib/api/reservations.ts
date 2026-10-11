@@ -1,6 +1,6 @@
 import { apiRequest, type RequestOptions } from "./client";
 import { count, fail, flag, list, number, record, text } from "./decode";
-import type { MatchRequest, ReceiptCheckName, Reservation, VerifyReservationResponse } from "./types";
+import type { CreateReservationRequest, ReceiptCheckName, Reservation, VerifyReservationResponse } from "./types";
 
 type Options = Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl">;
 
@@ -80,17 +80,8 @@ export function verifyReservation(id: string, options: Options = {}): Promise<Ve
   return apiRequest(`/api/reservations/${encodeURIComponent(id)}/verify`, { ...options, decode: (data: unknown) => decodeVerifyResult(data, id) });
 }
 
-// The body of POST /api/reservations (createReservationRequest in api/reservations.go). The API rejects unknown fields.
-export type CreateReservationBody = {
-  request_id: string;
-  snapshot_id: string;
-  offer_id: string;
-  wallet: string;
-  min_vram_gb: number;
-  max_price_per_hour: number;
-  priority: MatchRequest["priority"];
-  region: string | null;
-};
+// The body of POST /api/reservations. region is always sent, so the decoder can compare it with the response.
+export type CreateReservationBody = Required<CreateReservationRequest>;
 
 export type ConfirmResult = { reservation: Reservation; failed_checks: ReceiptCheckName[] };
 

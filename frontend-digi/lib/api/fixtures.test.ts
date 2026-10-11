@@ -14,6 +14,7 @@ const trends = read("market_trends.json");
 const match = read("match.json");
 const reservations = read("reservations.json");
 const gold = read("databricks_market.json");
+const vast = read("vast_offers.json");
 
 const decodeExport = (data: unknown) => {
   const e = record(data, "export");
@@ -38,6 +39,7 @@ const CASES: [string, () => any, (value: any) => unknown][] = [
   ["reservations.json confirm.response", () => reservations.confirm.response, (v) => decodeConfirmResult(v, reservations.confirm.response.id, reservations.confirm.request.signature)],
   ["reservations.json verify.response", () => reservations.verify.response, (v) => decodeVerifyResult(v, reservations.verify.response.reservation_id)],
   ["databricks_market.json", () => gold, decodeExport],
+  ["vast_offers.json", () => vast, decodeOffersEnvelope],
 ];
 
 // Renames the first key of the object, or of the first item of a list.
