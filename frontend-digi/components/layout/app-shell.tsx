@@ -6,6 +6,7 @@ import { IconCompass, IconReceipt, IconTarget } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ApiStatus } from "./api-status";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Explore", icon: IconCompass },
@@ -68,7 +69,8 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
           </Stack>
         </AppShell.Section>
         <AppShell.Section pt="md" style={{ borderTop: "1px solid var(--dg-rule)" }}>
-          <Text fz={12} fw={600}>Solana devnet</Text>
+          <ApiStatus />
+          <Text fz={12} fw={600} mt="md">Solana devnet</Text>
           <Text fz={12} c="dimmed" mt={4}>Test network · No real payments</Text>
         </AppShell.Section>
       </AppShell.Navbar>
