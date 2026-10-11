@@ -11,6 +11,8 @@ import { WalletConnectModalProvider } from "./wallet-modal";
 const connectionConfig: ConnectionConfig = {
   commitment: "confirmed",
   confirmTransactionInitialTimeout: 30000,
+  // A 429 fails at once with a clear message. The default retry waits about 8 seconds and logs each retry as an error.
+  disableRetryOnRateLimit: true,
 };
 
 // Log only. A wallet error must not disconnect the wallet.

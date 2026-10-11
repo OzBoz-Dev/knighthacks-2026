@@ -35,7 +35,8 @@ const FILTER_CHECKS: FilterCheck[] = [
   { label: "Search", active: (f) => !!searchTerm(f), passes: (o, f) => `${o.gpu_name} ${o.region}`.toLowerCase().includes(searchTerm(f)) },
   { label: "GPU model", active: (f) => !!f.model, passes: (o, f) => o.gpu_name === f.model },
   { label: "Region", active: (f) => !!f.region, passes: (o, f) => o.region === f.region },
-  { label: "Min VRAM", active: (f) => f.minVram !== null, passes: (o, f) => o.total_vram_gb >= f.minVram! },
+  // #36: the VRAM rule is per GPU, as in api/match/filter.go. A model that does not fit on one card does not run.
+  { label: "Min VRAM per GPU", active: (f) => f.minVram !== null, passes: (o, f) => o.gpu_ram_gb >= f.minVram! },
   { label: "Max price", active: (f) => f.maxPrice !== null, passes: (o, f) => o.price_per_hour <= f.maxPrice! },
   { label: "Min reliability", active: (f) => f.minReliability !== null, passes: (o, f, unit) => o.reliability * (unit === "ratio" ? 100 : 1) >= f.minReliability! },
   { label: "Verified only", active: (f) => f.verifiedOnly, passes: (o) => o.verified },

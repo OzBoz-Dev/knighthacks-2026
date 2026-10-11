@@ -8,6 +8,7 @@ import type { Reservation } from "@/lib/api/types";
 import { formatGb, formatTimestamp, formatUsdPerHour } from "@/lib/format";
 import { explorerTxUrl, priorityLabel, shorten } from "@/lib/reservations/receipt";
 import { reservationStatus, type VerificationOutcome } from "@/lib/reservations/status";
+import { SignAgainButton } from "@/components/solana/reserve-button";
 import { StatusBadge } from "./status-badge";
 import { VerifyPanel } from "./verify-panel";
 import styles from "./reservations.module.css";
@@ -38,11 +39,12 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function ReservationCard({ reservation, selected = false, focusNow = false, onFocused }: {
+export function ReservationCard({ reservation, selected = false, focusNow = false, onFocused, onChanged }: {
   reservation: Reservation;
   selected?: boolean;
   focusNow?: boolean;
   onFocused?: () => void;
+  onChanged?: () => void;
 }) {
   const [verification, setVerification] = useState<VerificationOutcome>();
   const ref = useRef<HTMLLIElement>(null);
@@ -93,6 +95,7 @@ export function ReservationCard({ reservation, selected = false, focusNow = fals
           ? "A signed reservation intent on Solana devnet. It is not a booking or a payment."
           : "A reservation intent that is not signed yet. It is not a booking or a payment."}
       </Text>
+      {reservation.status === "pending" && !reservation.signature && onChanged && <SignAgainButton reservation={reservation} onSettled={onChanged} />}
       <VerifyPanel reservation={reservation} onOutcome={setVerification} />
     </Paper>
   );

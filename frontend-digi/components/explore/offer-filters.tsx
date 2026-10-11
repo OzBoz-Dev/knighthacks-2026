@@ -26,7 +26,7 @@ export function OfferFilters({ filters, models, regions, onChange, onReset, disa
   return (
     <div className={styles.filterBar} aria-label="Filter and sort GPU offers">
       <Select className={styles.filter} size="xs" data={models} aria-label="GPU model" placeholder="GPU model" clearable value={filters.model} onChange={(model) => onChange({ model })} disabled={disabled} />
-      <NumberInput className={styles.filter} size="xs" aria-label="Minimum total VRAM in GB" placeholder="Min VRAM" min={0} hideControls prefix="≥ " suffix=" GB" value={filters.minVram ?? ""} onChange={(value) => onChange({ minVram: numeric(value) })} disabled={disabled} />
+      <NumberInput className={styles.filter} size="xs" aria-label="Minimum VRAM per GPU in GB" placeholder="Min VRAM per GPU" min={0} hideControls prefix="≥ " suffix=" GB" value={filters.minVram ?? ""} onChange={(value) => onChange({ minVram: numeric(value) })} disabled={disabled} />
       <Select className={styles.filter} size="xs" data={regions} aria-label="Region" placeholder="Region" clearable value={filters.region} onChange={(region) => onChange({ region })} disabled={disabled} />
       <NumberInput className={styles.filter} size="xs" aria-label="Maximum hourly price in dollars" placeholder="Max $/hr" min={0} decimalScale={3} hideControls prefix="≤ $" suffix="/hr" value={filters.maxPrice ?? ""} onChange={(value) => onChange({ maxPrice: numeric(value) })} disabled={disabled} />
       <Text fz={11} c="dimmed" className={styles.provider} title="Only Vast.ai listings are supported">Vast.ai</Text>

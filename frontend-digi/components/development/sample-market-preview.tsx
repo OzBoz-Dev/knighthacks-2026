@@ -22,7 +22,7 @@ export function SampleMarketPreview({
           </Title>
           <DataSourceLabel provenance={provenance} />
         </Group>
-        <Alert color="yellow" title="Development sample data — not live inventory">
+        <Alert color="yellow" title="Development sample data, not live inventory">
           These synthetic offers exist only to exercise the UI during development. They are not
           real Vast.ai listings or Databricks results.
         </Alert>

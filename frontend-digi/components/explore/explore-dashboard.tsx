@@ -2,7 +2,8 @@
 
 import { Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
 import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
@@ -14,15 +15,24 @@ import { OfferDetailsDrawer } from "./offer-details-drawer";
 import { MarketOverview } from "./market-overview";
 import { OfferTable } from "./offer-table";
 import { MarketInsights } from "./market-insights";
+import { ErrorState } from "@/components/shared/async-state";
 import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
 
-export function ExploreDashboard({ data }: { data: DashboardData | null }) {
+export function ExploreDashboard({ data, error, insights }: { data: DashboardData | null; error?: string; insights?: ReactNode }) {
   const [filters, setFilters] = useState<Filters>({ ...DEFAULT_FILTERS });
   const [expanded, setExpanded] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const offers = data?.offers ?? EMPTY_OFFERS;
+  // Only the development fixtures are samples. Live and saved API data are not.
+  const sample = data?.provenance.source === "dev-sample";
+  // After new data arrives, the drawer shows the offer from the new snapshot, or closes if it is gone.
+  const shownOffer = selectedOffer && (offers.find((o) => o.id === selectedOffer.id) ?? null);
+  const router = useRouter();
+  const [retrying, startRetry] = useTransition();
+  // Runs the server data load again. The transition keeps the button busy until the new data renders.
+  const retry = () => startRetry(() => router.refresh());
   const reliabilityUnit = data?.reliabilityUnit ?? "ratio";
   const models = useMemo(() => [...new Set(offers.map((o) => o.gpu_name))].sort(), [offers]);
   const regions = useMemo(() => [...new Set(offers.map((o) => o.region))].sort(), [offers]);
@@ -45,7 +55,8 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
 
   return (
     <Stack gap={12} className={styles.dashboard}>
-      <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={!!data} />
+      <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={sample} searchDisabled={!data} />
+      {error && <ErrorState title="Couldn't load GPU offers" message={`${error} No sample data is shown in its place.`} onRetry={retry} retrying={retrying} />}
       <RegionMarket offers={offers} history={data?.history ?? []} provenance={provenance} model={filters.model} region={filters.region} onModel={(model) => changeFilters({ model })} onRegion={(region) => changeFilters({ region })} onDetails={setSelectedOffer} />
       <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
       <section aria-labelledby="gpu-models-title">
@@ -69,10 +80,11 @@ export function ExploreDashboard({ data }: { data: DashboardData | null }) {
           onReset={resetFilters}
         />
       </section>
-      {data && <MarketInsights insights={data.insights} models={models} />}
+      {insights ?? (data && <MarketInsights insights={data.insights} models={models} />)}
       <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
-      <MarketOverview overview={overview} sample={!!data} onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />
-      <OfferDetailsDrawer offer={selectedOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
+      {/* The overview needs price history, which only the development samples have. The API has no history endpoint yet. */}
+      {sample && <MarketOverview overview={overview} sample onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />}
+      <OfferDetailsDrawer offer={shownOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>
   );
 }

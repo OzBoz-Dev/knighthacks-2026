@@ -4,7 +4,8 @@ import { Button, Group, List, Stack, Text, ThemeIcon } from "@mantine/core";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { describeApiError } from "@/lib/api/client";
-import { verifyReservation, type VerifyResult } from "@/lib/api/reservations";
+import { verifyReservation } from "@/lib/api/reservations";
+import type { VerifyReservationResponse } from "@/lib/api/types";
 import type { Reservation } from "@/lib/api/types";
 import { createLatestRequest } from "@/lib/match/latest-request";
 import { CHECK_LABELS, resultMatches, verificationOutcome } from "@/lib/reservations/verification";
@@ -15,7 +16,7 @@ import { ErrorState } from "@/components/shared/async-state";
 type PanelState =
   | { status: "idle" }
   | { status: "checking" }
-  | { status: "done"; result: VerifyResult; hashOk: boolean }
+  | { status: "done"; result: VerifyReservationResponse; hashOk: boolean }
   | { status: "error"; message: string };
 
 function CheckRow({ label, passed, detail }: { label: string; passed: boolean; detail: string }) {
