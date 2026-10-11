@@ -61,7 +61,7 @@ export function OfferDetailsDrawer({ offer, onClose, provenance, reliabilityUnit
           ["Against typical price", formatSignedPercent(offer.market_position_pct, "percent")],
         ]} />
         <Group><DataSourceLabel provenance={provenance} compact /></Group>
-        <Alert color="gray" title="Preview offer">This is a synthetic listing. GPU access, booking, wallet connection, and reservation signing are not available in this preview.</Alert>
+        <Alert color="gray" title="Preview offer">This is a synthetic listing. GPU access and booking aren&apos;t available. To sign a reservation intent on Solana devnet, find a match, then select Reserve.</Alert>
         <Button component={Link} href="/match" variant="default">Find a match</Button>
       </Stack>}
     </Drawer>
