@@ -24,7 +24,8 @@ jobs:
           echo "$changed"
           # A change to this workflow runs every job, so the workflow change itself is tested.
           api=false; frontend=false
-          if echo "$changed" | grep -Eq '^(api/|\.github/workflows/ci\.yml$)'; then api=true; fi
+          # api/contract/contract_test.go reads frontend-digi/lib/api/types.ts, so that file runs the Go job too.
+          if echo "$changed" | grep -Eq '^(api/|frontend-digi/lib/api/types\.ts$|\.github/workflows/ci\.yml$)'; then api=true; fi
           if echo "$changed" | grep -Eq '^(frontend-digi/|\.github/workflows/ci\.yml$)'; then frontend=true; fi
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
