@@ -3,20 +3,26 @@
 import { Button, Stack, Text } from "@mantine/core";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { describeApiError } from "@/lib/api/client";
 import { getReservations } from "@/lib/api/reservations";
 import { createLatestRequest } from "@/lib/match/latest-request";
-import { listView, type ListState } from "@/lib/reservations/list";
+import { listView, pinSelected, type ListState } from "@/lib/reservations/list";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared/async-state";
 import { ReservationCard } from "./reservation-card";
 
 export function ReservationList() {
   const { publicKey } = useWallet();
   const wallet = publicKey?.toBase58() ?? null;
+  const requestedId = useSearchParams().get("id");
   const [state, setState] = useState<ListState | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [latest] = useState(createLatestRequest);
+  // The focus moves once for each wallet and id, not again on a retry or a later render.
+  const [focusedFor, setFocusedFor] = useState<string | null>(null);
+  const focusKey = `${wallet}:${requestedId}`;
+  const markFocused = useCallback(() => setFocusedFor(focusKey), [focusKey]);
 
   useEffect(() => {
     if (!wallet) return;
@@ -50,16 +56,29 @@ export function ReservationList() {
           action={<Button component={Link} href="/match" variant="default">Find a match</Button>}
         />
       );
-    case "ready":
+    case "ready": {
+      const { rows, selectedId } = pinSelected(view.rows, requestedId);
       return (
         <section aria-labelledby="reservations-title">
           <Text id="reservations-title" fz={13} c="dimmed" mb="sm" role="status">
-            {view.rows.length} {view.rows.length === 1 ? "reservation" : "reservations"} for this wallet, newest first
+            {rows.length} {rows.length === 1 ? "reservation" : "reservations"} for this wallet, newest first{selectedId ? ", with the selected receipt at the top" : ""}
           </Text>
           <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-            {view.rows.map((reservation) => <ReservationCard key={`${reservation.id}:${reservation.signature ?? ""}`} reservation={reservation} />)}
+            {rows.map((reservation) => {
+              const selected = reservation.id === selectedId;
+              return (
+                <ReservationCard
+                  key={`${reservation.id}:${reservation.signature ?? ""}`}
+                  reservation={reservation}
+                  selected={selected}
+                  focusNow={selected && focusedFor !== focusKey}
+                  onFocused={markFocused}
+                />
+              );
+            })}
           </Stack>
         </section>
       );
+    }
   }
 }

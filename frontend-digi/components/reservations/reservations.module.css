@@ -2,6 +2,15 @@
   scroll-margin-top: 16px;
 }
 
+.card[data-selected] {
+  outline: 2px solid var(--mantine-color-lava-5);
+  outline-offset: 2px;
+}
+
+.selectedLabel {
+  letter-spacing: 0.8px;
+}
+
 .details {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

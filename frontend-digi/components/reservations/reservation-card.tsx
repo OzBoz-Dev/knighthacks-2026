@@ -2,7 +2,8 @@
 
 import { ActionIcon, Anchor, CopyButton, Group, Paper, Text, Title, Tooltip } from "@mantine/core";
 import { IconCheck, IconCopy, IconExternalLink } from "@tabler/icons-react";
-import { useState, type ReactNode } from "react";
+import { useReducedMotion } from "@mantine/hooks";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Reservation } from "@/lib/api/types";
 import { formatGb, formatTimestamp, formatUsdPerHour } from "@/lib/format";
 import { explorerTxUrl, priorityLabel, shorten } from "@/lib/reservations/receipt";
@@ -37,12 +38,28 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function ReservationCard({ reservation }: { reservation: Reservation }) {
+export function ReservationCard({ reservation, selected = false, focusNow = false, onFocused }: {
+  reservation: Reservation;
+  selected?: boolean;
+  focusNow?: boolean;
+  onFocused?: () => void;
+}) {
   const [verification, setVerification] = useState<VerificationOutcome>();
+  const ref = useRef<HTMLLIElement>(null);
+  const reducedMotion = useReducedMotion();
   const status = reservationStatus({ status: reservation.status, verification });
   const titleId = `reservation-${reservation.id}-title`;
+
+  useEffect(() => {
+    if (!focusNow || !ref.current) return;
+    ref.current.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
+    ref.current.focus({ preventScroll: true });
+    onFocused?.();
+  }, [focusNow, reducedMotion, onFocused]);
+
   return (
-    <Paper component="li" withBorder p="md" radius="sm" aria-labelledby={titleId} className={styles.card}>
+    <Paper ref={ref} component="li" withBorder p="md" radius="sm" aria-labelledby={titleId} className={styles.card} data-selected={selected || undefined} tabIndex={selected ? -1 : undefined}>
+      {selected && <Text fz={11} fw={700} tt="uppercase" mb={6} className={styles.selectedLabel}>Selected receipt</Text>}
       <Group justify="space-between" align="flex-start" gap="sm">
         <div>
           <Title order={3} fz={17} id={titleId}>{reservation.gpu_name}</Title>

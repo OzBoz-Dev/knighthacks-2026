@@ -12,6 +12,14 @@ export type ListView =
   | { kind: "empty" }
   | { kind: "ready"; rows: Reservation[] };
 
+// The receipt named in ?id= goes first. The other receipts keep the API order, newest first.
+// An id that is not in this wallet's list selects nothing, and the list shows as normal.
+export function pinSelected(rows: Reservation[], id: string | null): { rows: Reservation[]; selectedId: string | null } {
+  const selected = id ? rows.find((row) => row.id === id) : undefined;
+  if (!selected) return { rows, selectedId: null };
+  return { rows: [selected, ...rows.filter((row) => row !== selected)], selectedId: selected.id };
+}
+
 // State that belongs to another wallet is never shown, so a wallet switch cannot show the old wallet's receipts.
 export function listView(wallet: string | null, state: ListState | null): ListView {
   if (!wallet) return { kind: "disconnected" };
