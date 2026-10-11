@@ -62,3 +62,23 @@ jobs:
       - run: go vet ./...
       - run: go test ./...
       - run: go build ./...
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-digi
+    steps:
+      - uses: actions/checkout@v4
+      # Node 24 LTS: the wallet packages in the lockfile need Node 22.13, 24.3, or later.
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend-digi/package-lock.json
+      - run: node --version && npm --version
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

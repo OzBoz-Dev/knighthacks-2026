@@ -3,8 +3,8 @@ KnightHacks 2026 Submission
 
 ## Prerequisites
 
-- Go 1.24 or later. `api/go.mod` sets `go 1.24`. The Go toolchain must be 1.24 or later to build the API.
-- Node.js 20.9 or later. The `next` package in `frontend-digi/package-lock.json` (version 16.4.0) requires it. `frontend-digi/package.json` names no Node version, and the repo has no `.nvmrc` file.
+- Go 1.24 or later, to run the API. `api/go.mod` sets `go 1.24`. The frontend does not need Go.
+- Node.js 24 LTS, to run the frontend. CI uses Node 24. Some wallet packages in `frontend-digi/package-lock.json` need Node 22.13, 24.3, or later, so Node 20 does not work.
 - npm, which comes with Node.js. The repo pins no npm version. Use npm with the existing `frontend-digi/package-lock.json`, not yarn or pnpm.
 
 ## Start the API
@@ -41,6 +41,52 @@ Run these steps from a clean clone. The API reads its settings from `api/.env`.
 
 Run `go run .` from `api/`. The API reads `.env` from the current folder. It listens on `PORT`, which defaults to 8000. If a required setting is missing, the API stops and names it. A value that you set in your shell wins over the value in `.env`.
 
+## Start the frontend
+
+Run these steps from a clean clone. The frontend reads its settings from `frontend-digi/.env.local`.
+
+1. Open a terminal in the `frontend-digi/` folder:
+
+   ```bash
+   cd frontend-digi
+   ```
+
+2. Install the packages from the lockfile:
+
+   ```bash
+   npm ci
+   ```
+
+3. Copy the example settings file. If `.env.local` exists already, keep it and add the missing settings:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Check `NEXT_PUBLIC_API_URL` in `.env.local`. It must be the API address, normally `http://localhost:8000`.
+
+5. Start the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000).
+
+The pages load without the API. Match and My Reservations need the API from [Start the API](#start-the-api) to show data. Explore does not read the API yet.
+
+To see a sample Explore dashboard, start the dev server with the dev fixture flag:
+
+```bash
+NEXT_PUBLIC_USE_DEV_FIXTURES=1 npm run dev
+```
+
+The sample data is synthetic and the page labels it as sample data. The flag works only with `npm run dev`. A production build never loads the samples. The flag does not mock Match or My Reservations.
+
+To use another port, run `npm run dev -- -p 3100`. Then set `ALLOWED_ORIGIN` in `api/.env` to the same origin, for example `http://localhost:3100`, so the API accepts the requests.
+
+Restart the dev server after you change `.env.local`. A production build (`npm run build`) reads the `NEXT_PUBLIC_` values when it builds, so build again after a change.
+
 ## Environment variables
 
 Two files hold settings. Never commit either file. Restart the API or the web dev server after you change a value.
@@ -48,7 +94,7 @@ Two files hold settings. Never commit either file. Restart the API or the web de
 | File | Read by |
 |---|---|
 | `api/.env` | The Go API. Copy it from `api/.env.example`. |
-| `frontend-digi/.env.local` | The web app. Create it by hand. Next.js reads it. |
+| `frontend-digi/.env.local` | The web app. Copy it from `frontend-digi/.env.example`. Next.js reads it. |
 
 ### API settings (`api/.env`)
 
