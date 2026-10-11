@@ -57,6 +57,8 @@ func (e *Export) Summary(gpuName string) *contract.MarketSummary {
 }
 
 // Medians maps each gpu_name of the export to its median price.
+// shortcut: the export keys by the canonical name and holds no name map, so a raw Vast.ai name such as
+// "A100 PCIE" finds no median, upgrade when #21 adds the gpu_name_map rows to the export.
 func (e *Export) Medians() map[string]float64 {
 	m := make(map[string]float64, len(e.Summaries))
 	for _, s := range e.Summaries {
