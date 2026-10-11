@@ -224,6 +224,25 @@ the running app with the Vast.ai key in `api/.env`.
 | quoted hourly price on the reservation card | $0.83/hour | the reservation quotes the top match price, `price_per_hour` = 0.8262 (the card shows the same value) | 2026-10-11 00:59:52 UTC |
 | confirmation timestamp on the receipt | read from the receipt during the demo | the reservation is signed live on stage, so the receipt and Solana Explorer show the block time; the script does not fix it in advance | created during the demo |
 
+## Fallback mode test
+
+Issue #166. Run the API with no keys: `USE_VAST_FIXTURE=1 USE_DATABRICKS_FIXTURE=1`. Each
+response must carry a saved source and its original time, never the fetch time.
+
+| Check | Result at 2026-10-11T02:15Z |
+|---|---|
+| `GET /api/health` | `vast: fixture`, `databricks: fixture`, `sqlite: ok` |
+| `GET /api/offers` | `source: vast-saved`, `captured_at 2026-10-11T02:15:03Z`, 512 offers from `fixtures/vast_offers.json` |
+| `GET /api/market/summary?gpu_name=RTX 4090` | `source: databricks-export`, `captured_at 2026-10-10T23:49:28Z`, median 0.54 |
+| `GET /api/market/trends?gpu_name=RTX 4090` | `source: databricks-export`, 9 points from 21:16:05Z to 23:49:28Z |
+| `POST /api/match` (24 GB, $2/hour, 95%, balanced) | checked 512, eligible 224; the top result is a 1x RTX 5090 at $0.41/hour, 26% below the typical price |
+| API log | no call to Vast.ai or Databricks |
+
+Explore must show `Saved market snapshot from 2026-10-11 02:15 UTC` and the insights panel
+`Exported Databricks insights from 2026-10-10 23:49 UTC` in this mode. Refresh both fixture files
+at H9: `python databricks/export_fixture.py` for the gold export, and one `GET /api/offers` from
+the live API saved as `fixtures/vast_offers.json` with `source` set to `vast-saved`.
+
 ## Rehearsal log
 
 Issue #152 fills this table. Three rehearsals must finish in 5:15 or less.
