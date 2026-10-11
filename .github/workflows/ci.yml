@@ -26,7 +26,8 @@ jobs:
           api=false; frontend=false
           # api/contract/contract_test.go reads frontend-digi/lib/api/types.ts, so that file runs the Go job too.
           if echo "$changed" | grep -Eq '^(api/|frontend-digi/lib/api/types\.ts$|\.github/workflows/ci\.yml$)'; then api=true; fi
-          if echo "$changed" | grep -Eq '^(frontend-digi/|\.github/workflows/ci\.yml$)'; then frontend=true; fi
+          # frontend-digi/lib/api/fixtures.test.ts reads fixtures/, so a fixture change runs the frontend job too.
+          if echo "$changed" | grep -Eq '^(frontend-digi/|fixtures/|\.github/workflows/ci\.yml$)'; then frontend=true; fi
           echo "api=$api" >> "$GITHUB_OUTPUT"
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
           echo "api=$api frontend=$frontend"
