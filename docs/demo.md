@@ -5,8 +5,9 @@ Driver: P4 drives the laptop and speaks. One teammate stands ready to answer jud
 Rule: every number in this script comes from the app on screen or from the gold tables. Do not
 invent a number (`prd.md` section 4, "Demo rule").
 
-Each `{{NUMBER: ...}}` marker holds the place of one real value. Fill every marker before the
-first rehearsal. The table "Numbers to fill in" at the end lists them.
+Every value in this script is filled. The table "Numbers to fill in" at the end records the
+source and the capture time of each one. Refresh the app values at H9: they change with each
+snapshot, and #10 and #181 change the Match result.
 
 ## Before you start
 
@@ -31,7 +32,7 @@ Action:
 Say:
 
 "The same GPU can have very different prices depending on the host and region. solGPU makes
-that market easy to compare. What you see is {{NUMBER: data source label shown on Explore}}."
+that market easy to compare. What you see is Live Vast.ai inventory."
 
 ## 0:30-1:50 Explore: live inventory and insights
 
@@ -47,7 +48,7 @@ Action:
 
 Say:
 
-"This is {{NUMBER: data source label shown on Explore}}. We filter to RTX 4090 with 24 GB and
+"This is Live Vast.ai inventory. We filter to RTX 4090 with 24 GB and
 a $2 budget. Right now the lowest price is $0.15/hour, the typical price is $0.54/hour, and the
 high end is $0.90/hour across 36 offers. The cards and this trend chart come from Databricks,
 updated at 2026-10-10 23:37 UTC. This badge says the offer is 72% below the typical price for
@@ -67,13 +68,12 @@ Action:
 
 Say:
 
-"I need 24 GB of VRAM and I can spend $2 an hour. solGPU checked
-{{NUMBER: checked offer count from the Match summary}} offers and
-{{NUMBER: eligible offer count from the Match summary}} meet the requirements. Budget removed {{NUMBER: budget exclusion count}} and VRAM removed
-{{NUMBER: VRAM exclusion count}}. The top option is a {{NUMBER: GPU model of the top match}} at
-{{NUMBER: hourly price of the top match}}. It meets the memory requirement, it's 28% below the
-typical price for this model, and it has 97.6% reliability. Every explanation is a rule you can
-read, so the same market and the same request always give the same order."
+"I need 24 GB of VRAM and I can spend $2 an hour. solGPU checked 64 offers and 46 meet the
+requirements. Budget removed 15 and VRAM removed 3. The top option is an RTX 5090 at $0.83/hour:
+32 GB per GPU meets the memory requirement, and it has 99.8% reliability. The third option, at
+$0.38/hour, is 31% below the typical RTX 5090 price and has the best performance per dollar.
+Every explanation is a rule you can read, so the same market and the same request always give
+the same order."
 
 ## 3:15-3:40 Databricks proof
 
@@ -106,7 +106,7 @@ Action:
 Say:
 
 "I'll reserve the top match. I connect Phantom on devnet and click Reserve. The app builds a
-reservation intent: this offer at {{NUMBER: quoted hourly price on the reservation card}}, and
+reservation intent: this offer at $0.83/hour, and
 hashes it. Phantom signs one memo transaction with that hash. To be clear, this is a signed
 intent on devnet, not a booking and not a payment. Here's the confirmed receipt, and here's the
 same memo on Solana Explorer."
@@ -123,8 +123,7 @@ Say:
 
 "Verify re-checks the receipt against the chain. The transaction exists, this wallet signed it,
 the memo carries this reservation ID, the hash matches the stored payload, and it's confirmed at
-{{NUMBER: confirmation timestamp on the receipt}}. A screenshot can't prove that. This receipt
-can."
+the slot and the time you see on the receipt. A screenshot can't prove that. This receipt can."
 
 ## 5:15-5:30 Close
 
@@ -203,7 +202,7 @@ the running app with the Vast.ai key in `api/.env`.
 |---|---|---|---|
 | demo GPU model with at least three eligible offers at 24 GB and $2/hour | RTX 4090 | `solgpu.gold.offer_market_position`: three offers at 24 GB and at most $2/hour (ids 54083016, 54464707, 55298856) | 2026-10-10 23:37:28 UTC |
 | demo GPU model | RTX 4090 | `solgpu.gold.gpu_market_summary`: 36 listings, the most among 24 GB cards | 2026-10-10 23:37:28 UTC |
-| data source label shown on Explore | marker | app: `/api/offers` | fill on the demo laptop (needs the Vast.ai key) |
+| data source label shown on Explore | Live Vast.ai inventory | app: `GET /api/offers` returned `source: vast-live`; `frontend-digi/lib/data/provenance.ts` maps it to this label | 2026-10-11 00:59:52 UTC |
 | demo region with the most offers for the demo GPU | US | `solgpu.gold.gpu_price_trends`: region US holds 18 of the 36 RTX 4090 listings | 2026-10-10 23:37:28 UTC |
 | Lowest card value | $0.15/hour | `solgpu.gold.gpu_market_summary.lowest_price` = 0.1487 | 2026-10-10 23:37:28 UTC |
 | Typical card value | $0.54/hour | `solgpu.gold.gpu_market_summary.median_price` = 0.5389 | 2026-10-10 23:37:28 UTC |
@@ -211,19 +210,19 @@ the running app with the Vast.ai key in `api/.env`.
 | Listing count card value | 36 | `solgpu.gold.gpu_market_summary.listing_count` | 2026-10-10 23:37:28 UTC |
 | Databricks insights update time on Explore | 2026-10-10 23:37 UTC | `solgpu.gold.gpu_market_summary.updated_at` (the app formats the same value) | 2026-10-10 23:37:28 UTC |
 | percent below median on the badged offer | 72% | `solgpu.gold.offer_market_position.market_position_pct` = -72.4 for offer 54083016 (RTX 4090, US, $0.15/hour) | 2026-10-10 23:37:28 UTC |
-| checked offer count from the Match summary | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| eligible offer count from the Match summary | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| budget exclusion count | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| VRAM exclusion count | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| GPU model of the top match | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| hourly price of the top match | marker | app: `/api/match` | fill on the demo laptop (needs the Vast.ai key) |
-| percent below the typical price for the top match | 28% | `solgpu.gold.offer_market_position.market_position_pct` = -27.8 for offer 54464707, the cheapest RTX 4090 at 24 GB, at most $2/hour, and at least 95% reliability (check against the live Match result before the demo) | 2026-10-10 23:37:28 UTC |
-| reliability of the top match | 97.6% | `solgpu.silver.offers.reliability` = 0.9759 for offer 54464707 (check against the live Match result before the demo) | 2026-10-10 23:37:28 UTC |
+| checked offer count from the Match summary | 64 | app: `POST /api/match` with 24 GB, $2/hour, 95%, balanced: `checked` (64 is the Vast.ai default page; refresh after #10 adds a limit) | 2026-10-11 00:59:52 UTC |
+| eligible offer count from the Match summary | 46 | app: `POST /api/match`: `eligible` | 2026-10-11 00:59:52 UTC |
+| budget exclusion count | 15 | app: `POST /api/match`: `excluded.budget` | 2026-10-11 00:59:52 UTC |
+| VRAM exclusion count | 3 | app: `POST /api/match`: `excluded.vram` | 2026-10-11 00:59:52 UTC |
+| GPU model of the top match | RTX 5090 (2 GPUs, 32 GB each, offer 32984232, CA) | app: `POST /api/match`: `recommendations[0].offer` | 2026-10-11 00:59:52 UTC |
+| hourly price of the top match | $0.83/hour | app: `POST /api/match`: `recommendations[0].offer.price_per_hour` = 0.8262 | 2026-10-11 00:59:52 UTC |
+| percent below the typical price for the third match | 31% | app: `POST /api/match`: `recommendations[2]` explanation "$0.38/hour, 31% below the typical RTX 5090 price" (offer 51027140, SK); the top match is a 2-GPU offer and gets no price comparison once #181 lands | 2026-10-11 00:59:52 UTC |
+| reliability of the top match | 99.8% | app: `POST /api/match`: `recommendations[0].offer.reliability` = 0.9983 | 2026-10-11 00:59:52 UTC |
 | snapshot count in Databricks | 8 | `solgpu.gold.gpu_price_trends`: `count(DISTINCT timestamp)`, the same as `solgpu.bronze.vast_offers_raw` | 2026-10-10 23:37:28 UTC |
 | silver offer row count | 10226 | `solgpu.silver.offers`: `count(*)` across the 8 snapshots | 2026-10-10 23:37:28 UTC |
 | latest snapshot time in gold.gpu_market_summary | 2026-10-10 23:37:28 UTC | `solgpu.gold.gpu_market_summary`: `max(updated_at)` | 2026-10-10 23:37:28 UTC |
-| quoted hourly price on the reservation card | marker | app: Phantom reservation card | fill on the demo laptop (needs the Vast.ai key) |
-| confirmation timestamp on the receipt | marker | Solana Explorer | fill on the demo laptop (needs the Vast.ai key) |
+| quoted hourly price on the reservation card | $0.83/hour | the reservation quotes the top match price, `price_per_hour` = 0.8262 (the card shows the same value) | 2026-10-11 00:59:52 UTC |
+| confirmation timestamp on the receipt | read from the receipt during the demo | the reservation is signed live on stage, so the receipt and Solana Explorer show the block time; the script does not fix it in advance | created during the demo |
 
 ## Rehearsal log
 
