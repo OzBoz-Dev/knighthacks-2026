@@ -146,6 +146,28 @@
         "FROM solgpu.gold.contract_checks\n",
         "WHERE checked_at = (SELECT max(checked_at) FROM solgpu.gold.contract_checks)\n"
       ]
+    },
+    {
+      "name": "gpu_price_index",
+      "displayName": "GPU price index per snapshot",
+      "queryLines": [
+        "SELECT captured_at, index_value, basket_size, models_present, models_present_list,\n",
+        "       date_format(captured_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time\n",
+        "FROM solgpu.gold.gpu_price_index\n",
+        "ORDER BY captured_at\n"
+      ]
+    },
+    {
+      "name": "gpu_price_index_latest",
+      "displayName": "GPU price index, latest complete snapshot",
+      "queryLines": [
+        "SELECT index_value, models_present, basket_size,\n",
+        "       date_format(captured_at, 'yyyy-MM-dd HH:mm:ss') || ' UTC' AS snapshot_time\n",
+        "FROM solgpu.gold.gpu_price_index\n",
+        "WHERE index_value IS NOT NULL\n",
+        "ORDER BY captured_at DESC\n",
+        "LIMIT 1\n"
+      ]
     }
   ],
   "pages": [
@@ -752,6 +774,231 @@
             "y": 34,
             "width": 6,
             "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "index_header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### GPU price index\n",
+                "Equal-weight mean of the median single-GPU hourly price of a fixed basket of 8 models (A100 PCIe, A40, H100 SXM, L40S, RTX 3090, RTX 4090, RTX A6000, V100). A snapshot with a basket model under 3 listings has no index value; the chart shows a gap, not a smaller basket. Source: solgpu.gold.gpu_price_index. Method: databricks/README.md."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 39,
+            "width": 6,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "index_latest_value",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gpu_price_index_latest",
+                  "fields": [
+                    {
+                      "name": "index_value",
+                      "expression": "`index_value`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "index_value",
+                  "displayName": "Latest complete index (USD per hour)"
+                }
+              },
+              "frame": {
+                "title": "Latest complete index (USD per hour)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 41,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "index_latest_time",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gpu_price_index_latest",
+                  "fields": [
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "snapshot_time",
+                  "displayName": "Snapshot time of that index (UTC)"
+                }
+              },
+              "frame": {
+                "title": "Snapshot time of that index (UTC)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 44,
+            "width": 2,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "index_line",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gpu_price_index",
+                  "fields": [
+                    {
+                      "name": "captured_at",
+                      "expression": "`captured_at`"
+                    },
+                    {
+                      "name": "index_value",
+                      "expression": "`index_value`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "captured_at",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "snapshot time (UTC)"
+                },
+                "y": {
+                  "fieldName": "index_value",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "USD per hour"
+                }
+              },
+              "frame": {
+                "title": "GPU price index over time (gap = a basket model is missing)",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 41,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "index_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "gpu_price_index",
+                  "fields": [
+                    {
+                      "name": "snapshot_time",
+                      "expression": "`snapshot_time`"
+                    },
+                    {
+                      "name": "index_value",
+                      "expression": "`index_value`"
+                    },
+                    {
+                      "name": "models_present",
+                      "expression": "`models_present`"
+                    },
+                    {
+                      "name": "basket_size",
+                      "expression": "`basket_size`"
+                    },
+                    {
+                      "name": "models_present_list",
+                      "expression": "`models_present_list`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "snapshot_time",
+                    "displayName": "snapshot_time"
+                  },
+                  {
+                    "fieldName": "index_value",
+                    "displayName": "index_value"
+                  },
+                  {
+                    "fieldName": "models_present",
+                    "displayName": "models_present"
+                  },
+                  {
+                    "fieldName": "basket_size",
+                    "displayName": "basket_size"
+                  },
+                  {
+                    "fieldName": "models_present_list",
+                    "displayName": "models_present_list"
+                  }
+                ]
+              },
+              "frame": {
+                "title": "GPU price index by snapshot",
+                "showTitle": true
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 47,
+            "width": 6,
+            "height": 6
           }
         }
       ],

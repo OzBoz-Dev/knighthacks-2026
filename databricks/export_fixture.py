@@ -18,6 +18,8 @@ SUMMARY_QUERY = ("SELECT gpu_name, listing_count, lowest_price, median_price, p9
                  "updated_at, snapshot_id FROM solgpu.gold.gpu_market_summary ORDER BY gpu_name")
 TRENDS_QUERY = ("SELECT gpu_name, region, `timestamp`, minimum_price, median_price, p10_price, p90_price, "
                 "listing_count FROM solgpu.gold.gpu_price_trends ORDER BY gpu_name, region, `timestamp`")
+INDEX_QUERY = ("SELECT snapshot_id, captured_at, index_value, basket_size, models_present "
+               "FROM solgpu.gold.gpu_price_index ORDER BY captured_at")
 # Statement API row limit per call is 16 MiB, far above these tables. Timestamps come back as ISO strings.
 
 
@@ -56,6 +58,7 @@ def main():
     try:
         summary_rows = run_query(host, token, wh, SUMMARY_QUERY)
         trend_rows = run_query(host, token, wh, TRENDS_QUERY)
+        index_rows = run_query(host, token, wh, INDEX_QUERY)
     except RuntimeError as e:
         print(e)
         return 1
@@ -71,6 +74,10 @@ def main():
                "minimum_price": float(r["minimum_price"]), "median_price": float(r["median_price"]),
                "p10_price": float(r["p10_price"]), "p90_price": float(r["p90_price"]),
                "listing_count": int(r["listing_count"])} for r in trend_rows]
+    # index_value stays null when a basket model is missing (databricks/README.md, GPU price index method).
+    index = [{"snapshot_id": r["snapshot_id"], "captured_at": rfc3339(r["captured_at"]),
+              "index_value": None if r["index_value"] is None else float(r["index_value"]),
+              "basket_size": int(r["basket_size"]), "models_present": int(r["models_present"])} for r in index_rows]
     export = {
         "exported_at": max(s["updated_at"] for s in summaries),
         "snapshot_id": max(r["snapshot_id"] for r in summary_rows),
@@ -78,15 +85,18 @@ def main():
         "source": "databricks-export",
         "summaries": summaries,
         "trends": trends,
+        "index": index,
     }
     assert all(p["minimum_price"] <= p["p10_price"] <= p["median_price"] <= p["p90_price"] for p in trends)
+    assert all((p["index_value"] is None) == (p["models_present"] < p["basket_size"]) for p in index)
     assert export["exported_at"] <= export["generated_at"], "exported_at must be a data time, not the run time"
     with open(OUT_PATH, "w", encoding="utf-8", newline="\n") as f:
         json.dump(export, f, indent=2)
         f.write("\n")
     snapshots = len({p["timestamp"] for p in trends})
     print("wrote " + os.path.relpath(OUT_PATH) + ": " + str(len(summaries)) + " summaries, " + str(len(trends))
-          + " trend points over " + str(snapshots) + " snapshots, exported_at " + export["exported_at"])
+          + " trend points over " + str(snapshots) + " snapshots, " + str(len(index)) + " index points ("
+          + str(sum(p["index_value"] is not None for p in index)) + " with a value), exported_at " + export["exported_at"])
     return 0
 
 
