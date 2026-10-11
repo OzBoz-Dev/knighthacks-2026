@@ -1,14 +1,33 @@
+import type { ApiErrorCode } from "./types";
+
 export type ApiErrorKind = "config" | "network" | "http" | "invalid_response" | "aborted";
 
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status?: number;
+  // The error.code of the API error body (prd.md section 8), when the body has the agreed shape.
+  readonly code?: ApiErrorCode;
 
-  constructor(kind: ApiErrorKind, message: string, options?: { status?: number; cause?: unknown }) {
+  constructor(kind: ApiErrorKind, message: string, options?: { status?: number; code?: ApiErrorCode; cause?: unknown }) {
     super(message, { cause: options?.cause });
     this.name = "ApiError";
     this.kind = kind;
     this.status = options?.status;
+    this.code = options?.code;
+  }
+}
+
+const ERROR_CODES: readonly ApiErrorCode[] = ["bad_request", "not_found", "upstream_unavailable", "internal"];
+
+// The API writes error.message for users. Any other body (HTML, a stack trace, an unknown code) is never shown.
+async function readErrorBody(response: Response): Promise<{ code: ApiErrorCode; message: string } | null> {
+  try {
+    const error = ((await response.json()) as { error?: { code?: unknown; message?: unknown } } | null)?.error;
+    const code = ERROR_CODES.find((c) => c === error?.code);
+    const message = typeof error?.message === "string" ? error.message.trim() : "";
+    return code && message && message.length <= 300 ? { code, message } : null;
+  } catch {
+    return null;
   }
 }
 
@@ -77,8 +96,10 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    throw new ApiError("http", `The solGPU API responded with status ${response.status}.`, {
+    const body = await readErrorBody(response);
+    throw new ApiError("http", body?.message ?? `The solGPU API responded with status ${response.status}.`, {
       status: response.status,
+      code: body?.code,
     });
   }
 

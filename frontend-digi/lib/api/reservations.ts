@@ -1,6 +1,13 @@
 import { apiRequest, type RequestOptions } from "./client";
 import { count, fail, flag, list, number, record, text } from "./decode";
-import type { ReceiptCheckName, Reservation, VerifyReservationResponse } from "./types";
+import type {
+  ConfirmReservationRequest,
+  ConfirmReservationResponse,
+  CreateReservationRequest,
+  ReceiptCheckName,
+  Reservation,
+  VerifyReservationResponse,
+} from "./types";
 
 type Options = Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl">;
 
@@ -67,6 +74,40 @@ export function decodeVerifyResult(data: unknown, reservationId: string): Verify
   if (result.reservation_id !== reservationId) fail("reservation_id", "is not the requested reservation");
   if (checks.every((c) => c.passed) && result.slot === null) fail("slot", "is missing for a transaction that passes every check");
   return result;
+}
+
+// The API makes a new pending reservation from the offer in the snapshot. Its price and GPU never come from the request.
+export function decodeCreatedReservation(data: unknown, request: CreateReservationRequest): Reservation {
+  const r = decodeReservation(data);
+  if (r.status !== "pending" || r.signature !== null || r.slot !== null) fail("reservation", "is not a new pending reservation");
+  for (const key of ["request_id", "snapshot_id", "offer_id", "wallet"] as const) {
+    if (r[key] !== request[key]) fail(`reservation.${key}`, "is not the requested value");
+  }
+  return r;
+}
+
+// HTTP 200 can carry a failed reservation. failed_checks names the reasons, so the caller must read status.
+export function decodeConfirmResponse(data: unknown, id: string, signature: string): ConfirmReservationResponse {
+  const r = decodeReservation(data);
+  const failed = list(record(data, "reservation").failed_checks, "failed_checks").map((name, i) =>
+    VERIFY_CHECKS.find((c) => c === name) ?? fail(`failed_checks[${i}]`, "is not a known check"));
+  if (r.id !== id) fail("reservation.id", "is not the requested reservation");
+  if (r.signature !== signature) fail("reservation.signature", "is not the submitted signature");
+  if (r.status === "pending") fail("reservation.status", "is still pending after a confirm");
+  if ((r.status === "confirmed") !== (failed.length === 0)) fail("failed_checks", `do not agree with status ${r.status}`);
+  return { ...r, failed_checks: failed };
+}
+
+// A mutation: apiRequest never retries. A second call makes a second reservation.
+export function createReservation(request: CreateReservationRequest, options: Options = {}): Promise<Reservation> {
+  return apiRequest("/api/reservations", { ...options, method: "POST", body: request, decode: (data: unknown) => decodeCreatedReservation(data, request) });
+}
+
+// A repeat with the same signature is safe: the API returns the stored result.
+export function confirmReservation(id: string, signature: string, options: Options = {}): Promise<ConfirmReservationResponse> {
+  if (!id.trim() || !signature.trim()) return Promise.reject(new Error("A reservation id and a signature are required."));
+  const body: ConfirmReservationRequest = { signature };
+  return apiRequest(`/api/reservations/${encodeURIComponent(id)}/confirm`, { ...options, method: "POST", body, decode: (data: unknown) => decodeConfirmResponse(data, id, signature) });
 }
 
 export function getReservations(wallet: string, options: Options = {}): Promise<Reservation[]> {

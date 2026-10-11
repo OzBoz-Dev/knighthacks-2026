@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "./client";
-import { decodeMatchOptions, decodeMatchResponse, postMatch } from "./match";
-import type { MatchRequest } from "./types";
+import { decodeMatchResponse, getMatchOptions, matchOptionsFrom, postMatch } from "./match";
+import type { MatchRequest, Offer } from "./types";
 
 const fixture = JSON.parse(readFileSync(new URL("../../../fixtures/match.json", import.meta.url), "utf8")) as { request: MatchRequest; response: Record<string, unknown> };
 const clone = () => structuredClone(fixture.response) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -62,18 +62,26 @@ describe("decodeMatchResponse", () => {
   });
 });
 
-describe("decodeMatchOptions", () => {
-  const offers = JSON.parse(readFileSync(new URL("../../../fixtures/offers.json", import.meta.url), "utf8")) as { data: { gpu_name: string; region: string }[] };
+describe("getMatchOptions", () => {
+  const offers = JSON.parse(readFileSync(new URL("../../../fixtures/offers.json", import.meta.url), "utf8")) as { data: Offer[] };
+  // The fixture is dev-sample data, so the test gives it a real API source.
+  const envelope = (data: unknown[]) => ({ source: "vast-live", captured_at: "2026-10-10T20:00:00Z", snapshot_id: "s1", data });
 
-  it("lists each GPU model and region once, sorted", () => {
-    const options = decodeMatchOptions(offers);
+  it("lists each GPU model and region once, sorted, from the decoded offers", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(envelope(offers.data))));
+    const options = await getMatchOptions({ baseUrl: BASE, fetchImpl });
     expect(options.gpuNames).toEqual([...new Set(offers.data.map((o) => o.gpu_name))].sort());
     expect(options.regions).toEqual([...new Set(offers.data.map((o) => o.region))].sort());
   });
 
-  it("rejects a response without an offer list or with a blank name", () => {
-    expect(() => decodeMatchOptions({})).toThrow(/data/);
-    expect(() => decodeMatchOptions({ data: [{ gpu_name: " ", region: "US" }] })).toThrow(/gpu_name/);
+  it("leaves out the empty region of an offer with no location", () => {
+    expect(matchOptionsFrom([{ ...offers.data[0], region: "" }, offers.data[1]]).regions).toEqual([offers.data[1].region]);
+  });
+
+  it("rejects an invalid offers response", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(envelope([{ gpu_name: " " }]))));
+    const error = await getMatchOptions({ baseUrl: BASE, fetchImpl }).catch((e: unknown) => e);
+    expect((error as ApiError).kind).toBe("invalid_response");
   });
 });
 
