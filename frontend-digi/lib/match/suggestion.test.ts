@@ -8,7 +8,7 @@ const none = { gpu_model: 0, region: 0, vram: 0, reliability: 0, budget: 0 };
 describe("suggestion", () => {
   it("gives one suggestion for each exclusion reason", () => {
     expect(suggestion({ ...none, budget: 48 }, request)).toBe("Budget excluded 48 offers; try raising it above $1.20/hour.");
-    expect(suggestion({ ...none, vram: 3 }, request)).toBe("VRAM excluded 3 offers; try lowering it below 24 GB.");
+    expect(suggestion({ ...none, vram: 3 }, request)).toBe("VRAM per GPU excluded 3 offers; try lowering it below 24 GB.");
     expect(suggestion({ ...none, reliability: 1 }, request)).toBe("Reliability excluded 1 offer; try lowering it below 95%.");
     expect(suggestion({ ...none, region: 5 }, request)).toBe("Region excluded 5 offers; try a region other than US, or any region.");
     expect(suggestion({ ...none, gpu_model: 9 }, request)).toBe("GPU model excluded 9 offers; try allowing more GPU models.");
@@ -19,7 +19,7 @@ describe("suggestion", () => {
   });
 
   it("breaks a tie with the fixed filter order", () => {
-    expect(suggestion({ ...none, budget: 4, vram: 4 }, request)).toMatch(/^VRAM excluded 4/);
+    expect(suggestion({ ...none, budget: 4, vram: 4 }, request)).toMatch(/^VRAM per GPU excluded 4/);
     expect(suggestion({ ...none, gpu_model: 4, budget: 4 }, request)).toMatch(/^GPU model excluded 4/);
   });
 

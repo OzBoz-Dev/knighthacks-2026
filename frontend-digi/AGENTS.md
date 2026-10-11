@@ -65,7 +65,7 @@ Run commands from `frontend-digi/` using npm and the existing `package-lock.json
 ### Explore behavior
 
 - `lib/explore/types.ts` defines frontend-only dashboard types; `lib/explore/selectors.ts` contains pure filtering, representative selection, sorting, and preview metrics.
-- Search is case-insensitive across GPU model and region. Filters include model, minimum total VRAM, region, maximum hourly price, minimum reliability, and verified-only. Vast.ai is the sole provider, not an interactive multi-provider choice.
+- Search is case-insensitive across GPU model and region. Filters include model, minimum VRAM per GPU (#36), region, maximum hourly price, minimum reliability, and verified-only. Vast.ai is the sole provider, not an interactive multi-provider choice.
 - Select the cheapest eligible offer for each distinct model after filtering; break equal-price ties by offer ID. Sorting then applies to those representatives, not every listing in the market.
 - Default Featured order starts with H100 SXM, A100 PCIe, RTX 4090, and L40S. "Featured hardware" means curated presentation, not measured demand; do not label cards "Popular".
 - Show four model cards initially. The full-width bar below them reveals the additional rows and switches to "Show fewer models" when expanded; the extra cards are removed from focus order when collapsed. Filter changes reset expansion. If four or fewer models match, hide the bar. Offer details open in a Drawer, not a fourth product route.

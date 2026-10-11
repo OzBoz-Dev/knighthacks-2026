@@ -124,6 +124,27 @@ describe("apiRequest", () => {
     expect(error.message).toBe("The offer is not in that snapshot.");
   });
 
+  it("reads the API error code and its user-facing message", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ error: { code: "upstream_unavailable", message: "No offers are available now. Try again in a minute." } }, 503));
+    const error = await expectApiError(apiRequest("/api/offers", { baseUrl: BASE, fetchImpl }), "http");
+    expect(error.status).toBe(503);
+    expect(error.code).toBe("upstream_unavailable");
+    expect(error.message).toBe("No offers are available now. Try again in a minute.");
+  });
+
+  it("ignores an error body with an unknown code, no message, or a very long message", async () => {
+    for (const body of [
+      { error: { code: "teapot", message: "Short." } },
+      { error: { code: "internal", message: "  " } },
+      { error: { code: "internal", message: "x".repeat(400) } },
+      { message: "not the agreed shape" },
+    ]) {
+      const error = await expectApiError(apiRequest("/api/x", { baseUrl: BASE, fetchImpl: vi.fn(async () => jsonResponse(body, 500)) }), "http");
+      expect(error.code).toBeUndefined();
+      expect(error.message).toBe("The solGPU API responded with status 500.");
+    }
+  });
+
   it("reports malformed JSON as an invalid response", async () => {
     const fetchImpl = vi.fn(async () => new Response("{not json", { status: 200 }));
     await expectApiError(apiRequest("/api/x", { baseUrl: BASE, fetchImpl }), "invalid_response");
