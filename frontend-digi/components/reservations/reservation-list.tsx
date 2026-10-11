@@ -1,34 +1,15 @@
 "use client";
 
-import { Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
+import { Button, Stack, Text } from "@mantine/core";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { describeApiError } from "@/lib/api/client";
 import { getReservations } from "@/lib/api/reservations";
-import type { Reservation } from "@/lib/api/types";
-import { formatUsdPerHour } from "@/lib/format";
 import { createLatestRequest } from "@/lib/match/latest-request";
 import { listView, type ListState } from "@/lib/reservations/list";
-import { reservationStatus } from "@/lib/reservations/status";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared/async-state";
-import { UpdatedAt } from "@/components/shared/updated-at";
-import { StatusBadge } from "./status-badge";
-
-function ReservationRow({ reservation }: { reservation: Reservation }) {
-  return (
-    <Paper component="li" withBorder p="md" radius="sm">
-      <Group justify="space-between" gap="sm">
-        <div>
-          <Title order={3} fz={16}>{reservation.gpu_name}</Title>
-          <Text fz={12} c="dimmed">Offer {reservation.offer_id} · {formatUsdPerHour(reservation.price_per_hour)}</Text>
-          <UpdatedAt value={reservation.created_at} prefix="Created" fz={12} />
-        </div>
-        <StatusBadge view={reservationStatus({ status: reservation.status })} />
-      </Group>
-    </Paper>
-  );
-}
+import { ReservationCard } from "./reservation-card";
 
 export function ReservationList() {
   const { publicKey } = useWallet();
@@ -76,7 +57,7 @@ export function ReservationList() {
             {view.rows.length} {view.rows.length === 1 ? "reservation" : "reservations"} for this wallet, newest first
           </Text>
           <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-            {view.rows.map((reservation) => <ReservationRow key={reservation.id} reservation={reservation} />)}
+            {view.rows.map((reservation) => <ReservationCard key={reservation.id} reservation={reservation} />)}
           </Stack>
         </section>
       );
