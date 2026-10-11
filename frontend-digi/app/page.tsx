@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { ExploreDashboard } from "@/components/explore/explore-dashboard";
 import { LiveInsights } from "@/components/explore/live-insights";
 import { LoadingState } from "@/components/shared/async-state";
-import { describeApiError } from "@/lib/api/client";
-import { getOffers } from "@/lib/api/endpoints";
+import { describeApiError, getApiBaseUrl } from "@/lib/api/client";
+import { cachedOffers } from "@/lib/api/server";
 import { loadDevFixtures } from "@/lib/data/dev-mode";
 import { insightsModel } from "@/lib/explore/insights";
 import { liveDashboard } from "@/lib/explore/live";
@@ -52,7 +52,7 @@ async function ExploreData({ searchParams }: { searchParams: SearchParams }) {
 // A failed call never falls back to the samples.
 async function loadInventory(): Promise<{ data: DashboardData | null; error?: string }> {
   try {
-    return { data: liveDashboard(await getOffers()) };
+    return { data: liveDashboard(await cachedOffers(getApiBaseUrl())) };
   } catch (error) {
     return { data: null, error: describeApiError(error) };
   }
