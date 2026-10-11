@@ -10,6 +10,7 @@ import { getReservations } from "@/lib/api/reservations";
 import { createLatestRequest } from "@/lib/match/latest-request";
 import { listView, pinSelected, type ListState } from "@/lib/reservations/list";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared/async-state";
+import { FadeIn } from "@/components/shared/fade-in";
 import { ReservationCard } from "./reservation-card";
 
 export function ReservationList() {
@@ -64,17 +65,21 @@ export function ReservationList() {
             {rows.length} {rows.length === 1 ? "reservation" : "reservations"} for this wallet, newest first{selectedId ? ", with the selected receipt at the top" : ""}
           </Text>
           <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-            {rows.map((reservation) => {
+            {rows.map((reservation, index) => {
               const selected = reservation.id === selectedId;
               return (
-                <ReservationCard
-                  key={`${reservation.id}:${reservation.signature ?? ""}`}
-                  reservation={reservation}
-                  selected={selected}
-                  focusNow={selected && focusedFor !== focusKey}
-                  onFocused={markFocused}
-                  onChanged={retry}
-                />
+                <FadeIn key={`${reservation.id}:${reservation.signature ?? ""}`} transition="fade-up" delay={index * 65}>
+                  {(cardStyle) => (
+                    <ReservationCard
+                      reservation={reservation}
+                      selected={selected}
+                      focusNow={selected && focusedFor !== focusKey}
+                      onFocused={markFocused}
+                      onChanged={retry}
+                      style={cardStyle}
+                    />
+                  )}
+                </FadeIn>
               );
             })}
           </Stack>

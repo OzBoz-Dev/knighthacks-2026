@@ -1,10 +1,12 @@
 "use client";
 
 import { Badge, Box, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import type { CSSProperties } from "react";
 import type { MatchRequest, MatchResponse, Recommendation } from "@/lib/api/types";
 import { formatGb, formatPercent, formatUsdPerHour } from "@/lib/format";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
 import { EmptyState } from "@/components/shared/async-state";
+import { FadeIn } from "@/components/shared/fade-in";
 import { MarketPositionBadge } from "@/components/explore/market-position-badge";
 import { suggestion } from "@/lib/match/suggestion";
 import { ScoreBreakdown } from "./score-breakdown";
@@ -15,10 +17,10 @@ import { ReserveButton } from "@/components/solana/reserve-button";
 // shortcut: MatchResponse has no source or capture time, so the label says unknown, upgrade when #26 adds them to the match response.
 const MATCH_PROVENANCE = { source: "unknown", timestamp: null } as const;
 
-function ResultCard({ rec, request, requestId, snapshotId }: { rec: Recommendation; request: MatchRequest; requestId: string; snapshotId: string }) {
+function ResultCard({ rec, request, requestId, snapshotId, style }: { rec: Recommendation; request: MatchRequest; requestId: string; snapshotId: string; style?: CSSProperties }) {
   const { offer } = rec;
   return (
-    <Paper component="li" withBorder p="md" radius="sm" aria-labelledby={`match-result-${offer.id}`}>
+    <Paper component="li" withBorder p="md" radius="sm" aria-labelledby={`match-result-${offer.id}`} style={style}>
       <Group justify="space-between" align="flex-start" gap="sm" wrap="nowrap">
         <Group gap="sm" align="flex-start" wrap="nowrap">
           <Badge size="lg" variant="outline" color="gray" radius="sm" aria-label={`Rank ${rec.rank}`}>#{rec.rank}</Badge>
@@ -65,7 +67,11 @@ export function MatchResults({ response, request }: { response: MatchResponse; r
       {response.recommendations.length > 0 && <Box mb="sm"><FundingNotice /></Box>}
       {response.recommendations.length ? (
         <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-          {response.recommendations.map((rec) => <ResultCard key={rec.offer.id} rec={rec} request={request} requestId={response.request_id} snapshotId={response.snapshot_id} />)}
+          {response.recommendations.map((rec, index) => (
+            <FadeIn key={rec.offer.id} transition="fade-up" delay={index * 70}>
+              {(cardStyle) => <ResultCard rec={rec} request={request} requestId={response.request_id} snapshotId={response.snapshot_id} style={cardStyle} />}
+            </FadeIn>
+          ))}
         </Stack>
       ) : (
         <EmptyState title="No offers meet your requirements" description={suggestion(response.excluded, request)} />

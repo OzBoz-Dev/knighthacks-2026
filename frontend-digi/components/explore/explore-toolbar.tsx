@@ -1,9 +1,8 @@
 "use client";
 
-import { ActionIcon, Box, Group, Modal, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconArrowDownRight, IconArrowUpRight, IconInfoCircle, IconSearch, IconX } from "@tabler/icons-react";
-import { formatSignedPercent, formatUsdPerHour } from "@/lib/format";
+import { IconArrowDownRight, IconArrowUpRight, IconSearch, IconX } from "@tabler/icons-react";
 import type { MarketOverviewData } from "@/lib/explore/types";
 import { LazyWalletButton } from "@/components/solana/lazy-wallet-button";
 import styles from "./explore.module.css";
@@ -21,7 +20,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
 
   return (
     <>
-      <Box className={styles.toolbar}>
+      <Box className={styles.toolbar} mb={10}>
         <TextInput
           className={styles.search}
           size="sm"
@@ -32,10 +31,9 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
           value={search}
           onChange={(event) => onSearch(event.currentTarget.value)}
           disabled={searchDisabled}
-          mb={10}
         />
         <Group className={styles.toolbarActions} gap={8} wrap="nowrap" justify="space-between">
-          <UnstyledButton onClick={indexModal.open} className={styles.indexReadout} aria-label="Global GPU index methodology">
+          {/* <UnstyledButton onClick={indexModal.open} className={styles.indexReadout} aria-label="Global GPU index methodology">
             <Box>
               <Text fz={11} c="dimmed" tt="uppercase" fw={600} style={{ letterSpacing: "0.8px" }}>GPU index{sample && " · sample"}</Text>
               <Group gap={8} wrap="nowrap" align="baseline">
@@ -47,7 +45,7 @@ export function ExploreToolbar({ search, onSearch, overview, sample, searchDisab
               </Group>
             </Box>
             <IconInfoCircle size={14} color="var(--mantine-color-dimmed)" aria-hidden />
-          </UnstyledButton>
+          </UnstyledButton> */}
           <LazyWalletButton />
         </Group>
       </Box>

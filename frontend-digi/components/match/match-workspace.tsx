@@ -8,6 +8,7 @@ import type { MatchRequest, MatchResponse } from "@/lib/api/types";
 import { buildMatchRequest, DEMO_PRESET, formMatchesRequest, INITIAL_MATCH_VALUES, type MatchFormErrors, type MatchFormField, type MatchFormValues } from "@/lib/match/form";
 import { createLatestRequest } from "@/lib/match/latest-request";
 import { ErrorState, LoadingState } from "@/components/shared/async-state";
+import { FadeIn } from "@/components/shared/fade-in";
 import { FIELD_IDS, MatchForm, type OptionsState } from "./match-form";
 import { MatchResults } from "./match-results";
 
@@ -68,6 +69,7 @@ export function MatchWorkspace() {
 
   return (
     <Stack gap="lg">
+      <FadeIn delay={60}>
       <MatchForm
         values={values}
         errors={errors}
@@ -78,6 +80,7 @@ export function MatchWorkspace() {
         onSubmit={submit}
         onRetryOptions={() => { setOptions({ status: "loading" }); setOptionsAttempt((n) => n + 1); }}
       />
+      </FadeIn>
       {match.status === "idle" && <Text c="dimmed" fz={14}>Enter your requirements, then select Find matches.</Text>}
       {match.status === "loading" && <LoadingState label="Finding matches…" rows={3} />}
       {match.status === "error" && <ErrorState title="Couldn't find matches" message={`${match.message} Your requirements are kept, so you can try again.`} onRetry={() => run(match.request)} />}

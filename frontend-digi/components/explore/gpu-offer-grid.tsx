@@ -8,6 +8,7 @@ import type { Offer } from "@/lib/api/types";
 import type { PercentUnit } from "@/lib/format";
 import { visibleModelOffers } from "@/lib/explore/selectors";
 import { EmptyState } from "@/components/shared/async-state";
+import { FadeIn } from "@/components/shared/fade-in";
 import { GpuOfferCard } from "./gpu-offer-card";
 import styles from "./explore.module.css";
 
@@ -29,7 +30,11 @@ export function GpuOfferGrid({ offers, reliabilityUnit, expanded, hasData, exclu
   const reducedMotion = useReducedMotion();
   const firstFour = visibleModelOffers(offers, false);
   const extra = offers.slice(4);
-  const card = (offer: Offer) => <GpuOfferCard key={offer.id} offer={offer} reliabilityUnit={reliabilityUnit} onDetails={() => onDetails(offer)} />;
+  const card = (offer: Offer, index: number) => (
+    <FadeIn key={offer.id} transition="fade-up" duration={220} delay={Math.min(index, 8) * 50}>
+      {(cardStyle) => <GpuOfferCard offer={offer} reliabilityUnit={reliabilityUnit} onDetails={() => onDetails(offer)} style={cardStyle} />}
+    </FadeIn>
+  );
 
   if (!firstFour.length) {
     return (

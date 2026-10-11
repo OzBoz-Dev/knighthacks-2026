@@ -1,5 +1,6 @@
 import { Group, Stack, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
+import { FadeIn } from "@/components/shared/fade-in";
 
 export function PageHeader({
   title,
@@ -11,6 +12,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
+    <FadeIn>
     <Group justify="space-between" align="flex-end" mb="xl" gap="md">
       <Stack gap={8}>
         <Title order={1} fz={{ base: 26, lg: 32 }} lh={1.15} style={{ letterSpacing: "-0.6px" }}>
@@ -24,5 +26,6 @@ export function PageHeader({
       </Stack>
       {actions && <Group>{actions}</Group>}
     </Group>
+    </FadeIn>
   );
 }

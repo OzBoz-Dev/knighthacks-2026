@@ -7,6 +7,8 @@
 .stageCaption { position: absolute; top: 18px; left: 22px; pointer-events: none; z-index: 1; }
 .stageFooter { position: absolute; bottom: 14px; left: 22px; right: 22px; pointer-events: none; }
 .loading { position: absolute; top: 70px; left: 22px; }
+.geoLayer { animation: geoIn 420ms ease; }
+@keyframes geoIn { from { opacity: 0; } }
 .mapFallback { min-height: 410px; justify-content: center; padding: 30px; }
 .node { cursor: pointer; transition: r 250ms, fill 250ms; }
 .node:focus-visible { outline: none; stroke: #fff; stroke-width: 4; }

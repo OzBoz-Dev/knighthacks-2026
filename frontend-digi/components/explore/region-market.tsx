@@ -11,6 +11,7 @@ import type { Provenance } from "@/lib/data/provenance";
 import { aggregateRegions, regionHistory } from "@/lib/explore/regions";
 import { formatTimestamp, formatUsd, formatUsdPerHour } from "@/lib/format";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
+import { FadeIn } from "@/components/shared/fade-in";
 import styles from "./region-market.module.css";
 
 const Globe = dynamic(() => import("./region-globe"), { ssr: false, loading: () => <div className={styles.mapFallback}><Text role="status">Loading globe…</Text></div> });
@@ -42,9 +43,11 @@ export function RegionMarket({ offers, history, provenance, model, region, onMod
         <Select label="GPU model" placeholder="All models" data={models} value={model} onChange={onModel} clearable searchable disabled={!offers.length} size="xs" />
         <div><Group justify="space-between" mb={8}><Text fw={600} fz={13}>Regions</Text><Text fz={10} c="dimmed">MEDIAN / HR</Text></Group>
           <div className={styles.regionList} role="group" aria-label="Select a market region">
-            {nodes.map((node) => <UnstyledButton key={node.region} className={styles.regionRow} aria-pressed={region === node.region} onClick={() => select(node.region)} aria-label={`Filter offers to ${node.region}`}>
-              <div><Text fz={12} fw={500}>{node.region || "Unknown region"}</Text><Text fz={10} c="dimmed">{node.count} {node.count === 1 ? "offer" : "offers"}{!node.coordinates ? " · not mapped" : ""}</Text></div><Text fz={12} ff="monospace">{formatUsd(node.median)}</Text>
-            </UnstyledButton>)}
+            {nodes.map((node, index) => <FadeIn key={node.region} transition="fade-right" duration={200} delay={index * 30}>{(rowStyle) => (
+              <UnstyledButton className={styles.regionRow} style={rowStyle} aria-pressed={region === node.region} onClick={() => select(node.region)} aria-label={`Filter offers to ${node.region}`}>
+                <div><Text fz={12} fw={500}>{node.region || "Unknown region"}</Text><Text fz={10} c="dimmed">{node.count} {node.count === 1 ? "offer" : "offers"}{!node.coordinates ? " · not mapped" : ""}</Text></div><Text fz={12} ff="monospace">{formatUsd(node.median)}</Text>
+              </UnstyledButton>
+            )}</FadeIn>)}
           </div>
           {!nodes.length && <Text fz={12} c="dimmed" py="lg">{offers.length ? "No regions match this model. Clear the GPU model filter." : "No inventory available. Regions appear when market data is connected."}</Text>}
         </div>

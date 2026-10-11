@@ -1,11 +1,12 @@
 "use client";
 
-import { Button, Group, Stack, Text } from "@mantine/core";
+import { Button, Group, Loader, Stack, Text } from "@mantine/core";
 import { IconAlertTriangle, IconCircleCheck, IconCircleDashed, IconDatabase } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { getHealth } from "@/lib/api/endpoints";
 import { healthView, type HealthState, type HealthTone } from "@/lib/health";
 import { createLatestRequest } from "@/lib/match/latest-request";
+import { FadeIn } from "@/components/shared/fade-in";
 
 // Each tone has its own icon and its own text, so the status does not depend on color.
 const TONE: Record<HealthTone, { Icon: typeof IconCircleCheck; color: string }> = {
@@ -38,27 +39,31 @@ export function ApiStatus() {
   return (
     <section aria-labelledby="api-status-title">
       <Group gap={6} wrap="nowrap">
-        <ToneIcon tone={view.tone} />
+        {state.status === "loading" ? <Loader size={11} aria-hidden /> : <ToneIcon tone={view.tone} />}
         <Text id="api-status-title" fz={12} fw={600}>API status</Text>
       </Group>
       <Text fz={12} c="dimmed" mt={2} role="status">{view.summary}</Text>
       {view.rows.length > 0 && (
         <Stack component="dl" gap={2} mt={6} mb={0}>
-          {view.rows.map((row) => (
-            <Group key={row.label} justify="space-between" gap={6} wrap="nowrap">
+          {view.rows.map((row, index) => (
+            <FadeIn key={row.label} duration={180} delay={index * 55}>
+            <Group justify="space-between" gap={6} wrap="nowrap">
               <Text component="dt" fz={11} c="dimmed">{row.label}</Text>
               <Group component="dd" gap={4} wrap="nowrap" m={0}>
                 <ToneIcon tone={row.tone} />
                 <Text fz={11}>{row.value}</Text>
               </Group>
             </Group>
+            </FadeIn>
           ))}
         </Stack>
       )}
       {view.retry && state.status === "error" && (
-        <Button size="compact-xs" variant="subtle" mt={4} px={0} onClick={() => { setState({ status: "loading" }); setAttempt((n) => n + 1); }}>
-          Check again
-        </Button>
+        <FadeIn delay={80}>
+          <Button size="compact-xs" variant="subtle" mt={4} px={0} onClick={() => { setState({ status: "loading" }); setAttempt((n) => n + 1); }}>
+            Check again
+          </Button>
+        </FadeIn>
       )}
     </section>
   );

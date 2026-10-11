@@ -41,6 +41,7 @@ export const theme = createTheme({
   white: "#FFFFFF",
   fontFamily: sans,
   fontFamilyMonospace: "var(--font-dm-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
+  respectReducedMotion: true,
   headings: { fontFamily: sans, fontWeight: "600" },
   defaultRadius: "sm",
   radius: { xs: "2px", sm: "4px", md: "6px", lg: "8px" },

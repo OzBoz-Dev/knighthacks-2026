@@ -16,6 +16,7 @@ import { MarketOverview } from "./market-overview";
 import { OfferTable } from "./offer-table";
 import { MarketInsights } from "./market-insights";
 import { ErrorState } from "@/components/shared/async-state";
+import { FadeIn } from "@/components/shared/fade-in";
 import styles from "./explore.module.css";
 
 const EMPTY_OFFERS: readonly Offer[] = [];
@@ -55,10 +56,11 @@ export function ExploreDashboard({ data, error, insights }: { data: DashboardDat
 
   return (
     <Stack gap={12} className={styles.dashboard}>
-      <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={sample} searchDisabled={!data} />
-      {error && <ErrorState title="Couldn't load GPU offers" message={`${error} No sample data is shown in its place.`} onRetry={retry} retrying={retrying} />}
-      <RegionMarket offers={offers} history={data?.history ?? []} provenance={provenance} model={filters.model} region={filters.region} onModel={(model) => changeFilters({ model })} onRegion={(region) => changeFilters({ region })} onDetails={setSelectedOffer} />
-      <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
+      <FadeIn><ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={sample} searchDisabled={!data} /></FadeIn>
+      {error && <FadeIn delay={60}><ErrorState title="Couldn't load GPU offers" message={`${error} No sample data is shown in its place.`} onRetry={retry} retrying={retrying} /></FadeIn>}
+      <FadeIn delay={90}><RegionMarket offers={offers} history={data?.history ?? []} provenance={provenance} model={filters.model} region={filters.region} onModel={(model) => changeFilters({ model })} onRegion={(region) => changeFilters({ region })} onDetails={setSelectedOffer} /></FadeIn>
+      <FadeIn delay={180}><OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} /></FadeIn>
+      <FadeIn delay={270}>
       <section aria-labelledby="gpu-models-title">
         <Group justify="space-between" mb={8} gap="xs">
           <Group gap="xs" align="center">
@@ -80,10 +82,15 @@ export function ExploreDashboard({ data, error, insights }: { data: DashboardDat
           onReset={resetFilters}
         />
       </section>
-      {insights ?? (data && <MarketInsights insights={data.insights} models={models} />)}
-      <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
+      </FadeIn>
+      {data && <FadeIn delay={360}>{insights ?? <MarketInsights insights={data.insights} models={models} />}</FadeIn>}
+      {tableOffers.length > 0 && (
+        <FadeIn delay={450}>
+          <OfferTable offers={tableOffers} reliabilityUnit={reliabilityUnit} sort={tableSort} onSort={changeTableSort} limit={rowLimit} onShowMore={() => setRowLimit((limit) => limit + TABLE_PAGE_SIZE)} onDetails={setSelectedOffer} />
+        </FadeIn>
+      )}
       {/* The overview needs price history, which only the development samples have. The API has no history endpoint yet. */}
-      {sample && <MarketOverview overview={overview} sample onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} />}
+      {sample && <FadeIn delay={450}><MarketOverview overview={overview} sample onRegion={(region, model) => jumpToCards({ region, model })} onModel={(model) => jumpToCards({ model })} /></FadeIn>}
       <OfferDetailsDrawer offer={shownOffer} onClose={() => setSelectedOffer(null)} provenance={provenance} reliabilityUnit={reliabilityUnit} />
     </Stack>
   );

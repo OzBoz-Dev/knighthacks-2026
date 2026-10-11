@@ -3,15 +3,16 @@
 import { Box, Button, Card, Group, Text } from "@mantine/core";
 import { IconArrowRight } from "@tabler/icons-react";
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import type { Offer } from "@/lib/api/types";
 import { formatGb, formatPercent, formatUsd, type PercentUnit } from "@/lib/format";
 import { MarketPositionBadge } from "./market-position-badge";
 import styles from "./explore.module.css";
 
-export function GpuOfferCard({ offer, reliabilityUnit, onDetails }: { offer: Offer; reliabilityUnit: PercentUnit; onDetails: () => void }) {
+export function GpuOfferCard({ offer, reliabilityUnit, onDetails, style }: { offer: Offer; reliabilityUnit: PercentUnit; onDetails: () => void; style?: CSSProperties }) {
   const multi = offer.num_gpus > 1;
   return (
-    <Card component="article" withBorder radius="sm" padding={11} bg="var(--dg-surface)" className={styles.offerCard}>
+    <Card component="article" withBorder radius="sm" padding={11} bg="var(--dg-surface)" className={styles.offerCard} style={style}>
       <Group gap={8} wrap="nowrap" align="flex-start">
         <Box className={styles.thumbnail}>
           <Image src="/illustrations/gpu.svg" width={42} height={42} alt="" aria-hidden />

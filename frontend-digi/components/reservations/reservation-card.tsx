@@ -3,7 +3,7 @@
 import { ActionIcon, Anchor, CopyButton, Group, Paper, Text, Title, Tooltip } from "@mantine/core";
 import { IconCheck, IconCopy, IconExternalLink } from "@tabler/icons-react";
 import { useReducedMotion } from "@mantine/hooks";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { Reservation } from "@/lib/api/types";
 import { formatGb, formatTimestamp, formatUsdPerHour } from "@/lib/format";
 import { explorerTxUrl, priorityLabel, shorten } from "@/lib/reservations/receipt";
@@ -39,12 +39,13 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function ReservationCard({ reservation, selected = false, focusNow = false, onFocused, onChanged }: {
+export function ReservationCard({ reservation, selected = false, focusNow = false, onFocused, onChanged, style }: {
   reservation: Reservation;
   selected?: boolean;
   focusNow?: boolean;
   onFocused?: () => void;
   onChanged?: () => void;
+  style?: CSSProperties;
 }) {
   const [verification, setVerification] = useState<VerificationOutcome>();
   const ref = useRef<HTMLLIElement>(null);
@@ -60,7 +61,7 @@ export function ReservationCard({ reservation, selected = false, focusNow = fals
   }, [focusNow, reducedMotion, onFocused]);
 
   return (
-    <Paper ref={ref} component="li" withBorder p="md" radius="sm" aria-labelledby={titleId} className={styles.card} data-selected={selected || undefined} tabIndex={selected ? -1 : undefined}>
+    <Paper ref={ref} component="li" withBorder p="md" radius="sm" aria-labelledby={titleId} className={styles.card} data-selected={selected || undefined} tabIndex={selected ? -1 : undefined} style={style}>
       {selected && <Text fz={11} fw={700} tt="uppercase" mb={6} className={styles.selectedLabel}>Selected receipt</Text>}
       <Group justify="space-between" align="flex-start" gap="sm">
         <div>
