@@ -152,7 +152,7 @@ Never present fixture data as live.
 - Columns: GPU, GPU count, VRAM per GPU, region, hourly price, reliability, performance score, verified host.
 - Filters:
   - GPU model
-  - minimum total VRAM
+  - minimum VRAM per GPU
   - maximum hourly price
   - region
   - minimum reliability
@@ -181,7 +181,7 @@ Never present fixture data as live.
 ### 5.2 Match
 
 #### Inputs
-- Minimum total VRAM in GB.
+- Minimum VRAM per GPU in GB.
 - Maximum hourly budget.
 - Optional GPU-model allowlist.
 - Optional region.
@@ -196,7 +196,7 @@ Apply in this order and count the first reason each offer fails:
 
 1. GPU model, if specified.
 2. Region, if specified.
-3. Total VRAM.
+3. VRAM per GPU.
 4. Reliability.
 5. Hourly budget.
 
@@ -244,7 +244,7 @@ If no offers qualify, use the exclusion counts to give one useful suggestion, su
 4. Phantom signs a Solana devnet transaction containing a Memo:
 
    ```text
-   CX1|<reservation_id>|<payload_hash>
+   SG1|<reservation_id>|<payload_hash>
    ```
 
 5. Frontend confirms the transaction.
@@ -265,7 +265,7 @@ Verification occurs inside My Reservations; do not build a separate fourth featu
 
 Checks:
 - transaction exists on Solana devnet;
-- connected wallet signed;
+- the reservation wallet (`Reservation.wallet`) signed;
 - Memo has the correct reservation ID;
 - Memo hash equals SHA-256 of the stored canonical payload;
 - transaction is confirmed.
@@ -288,9 +288,9 @@ Status is one of:
 - My Reservations list with receipt verification.
 - Databricks bronze/silver/gold pipeline and a live app query to at least one gold output.
 - Honest fixtures for Vast and Databricks failures.
+- Region comparison chart for the selected GPU, from the gold trend table.
 
 ### Should, only after the full flow works at H7
-- Region comparison chart.
 - Performance-per-dollar trend.
 - Shareable receipt URL.
 - Export reservation receipt as JSON.
@@ -498,7 +498,7 @@ The API builds `canonical_payload` once and stores it. The frontend and the veri
 - Encode with `json.Marshal`, with no indentation and no extra spaces.
 - `payload_hash` is the lowercase hex SHA-256 of the payload bytes.
 
-Memo format: `CX1|<reservation_id>|<payload_hash>`.
+Memo format: `SG1|<reservation_id>|<payload_hash>`.
 
 ---
 
@@ -508,6 +508,7 @@ Memo format: `CX1|<reservation_id>|<payload_hash>`.
 - The Go API writes one raw Vast.ai snapshot file every 10 minutes to a shared local directory.
 - P4 owns `/databricks/upload_snapshots.py`, which uploads new files to a Unity Catalog Volume and records what succeeded.
 - Upload failure does not break Explore or Match; the script retries on the next cycle.
+- A scheduled Databricks job runs bronze to silver to gold every 10 minutes, 5 minutes after the collector tick. P4 owns it.
 - Start collection and upload by H1 so the demo has real history.
 
 ### Bronze
