@@ -2,7 +2,8 @@
 
 Status: P4 confirmed every field below with 2407 real offers in `solgpu.bronze.vast_offers_raw`,
 from two snapshots at 2026-10-10T21:16Z (#72). `databricks/README.md` section "Vast.ai field units"
-has the counts and ranges. The sample offer below still needs one real offer.
+has the counts and ranges. The sample offer below is one real offer from the authenticated
+endpoint, captured at 2026-10-11T02:06Z (#94). Its values agree with the table.
 
 ## Endpoint
 
@@ -36,10 +37,32 @@ has the counts and ranges. The sample offer below still needs one real offer.
 
 ## Sample offer (redacted)
 
-P2 fills this with one real offer. Replace the IDs and the host fields with `REDACTED`.
+Captured 2026-10-11T02:06:03Z from the authenticated endpoint; IDs and host fields are REDACTED.
 
 ```json
-{"PLACEHOLDER": "P2 pastes one redacted offer here"}
+{
+  "id": "REDACTED",
+  "gpu_name": "RTX 4090",
+  "num_gpus": 1,
+  "gpu_ram": 24564,
+  "gpu_total_ram": 24564,
+  "dph_total": 0.1577,
+  "reliability2": 0.9462,
+  "reliability": 0.9462,
+  "geolocation": "Texas, US",
+  "dlperf": 9.999,
+  "dlperf_per_dphtotal": 63.401,
+  "verification": "deverified",
+  "verified": null,
+  "rentable": true,
+  "rented": false,
+  "machine_id": "REDACTED",
+  "host_id": "REDACTED",
+  "hostname": "REDACTED",
+  "public_ipaddr": "REDACTED",
+  "cuda_max_good": 13.2,
+  "driver_version": "595.58.03"
+}
 ```
 
 ## Confirm with a real call (P2)
