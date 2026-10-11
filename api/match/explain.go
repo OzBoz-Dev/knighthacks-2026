@@ -27,7 +27,8 @@ func Explain(recs []contract.Recommendation, eligible []contract.Offer, req cont
 			vram = fmt.Sprintf("%s GB VRAM per GPU meets your %s GB requirement.", gb(vramOf(o)), gb(req.MinVRAMGB))
 		}
 		ex := []string{vram}
-		if m, ok := medians[o.GPUName]; ok && m > 0 {
+		// The median comes from single-GPU listings, so a multi-GPU offer gets no price explanation (#38).
+		if m, ok := medians[o.GPUName]; ok && m > 0 && o.NumGPUs <= 1 {
 			switch d := math.Round((m - o.PricePerHour) / m * 100); {
 			case d > 0:
 				ex = append(ex, fmt.Sprintf("%s, %v%% below the typical %s price.", money(o.PricePerHour), d, o.GPUName))

@@ -27,6 +27,13 @@ func TestExplain(t *testing.T) {
 	if got := recs[1].Explanations; !slices.Equal(got, []string{"48 GB VRAM per GPU meets your 20 GB requirement.", "100% reliability."}) {
 		t.Errorf("without median: got %q", got)
 	}
+	// A multi-GPU offer: the median is for one GPU, so no price explanation.
+	b.NumGPUs = 2
+	recs = []contract.Recommendation{{Offer: b}}
+	Explain(recs, []contract.Offer{b}, req, map[string]float64{"RTX 4090": 1})
+	if got := recs[0].Explanations; !slices.Equal(got, []string{"48 GB VRAM per GPU meets your 20 GB requirement.", "100% reliability.", "Best performance-per-dollar among the suitable offers."}) {
+		t.Errorf("multi-gpu: got %q", got)
+	}
 }
 
 func TestExplainRounding(t *testing.T) {

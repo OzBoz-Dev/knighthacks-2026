@@ -32,9 +32,11 @@ func TestWithMarketPosition(t *testing.T) {
 		{ID: "above", GPUName: "A100", PricePerHour: 1.5},
 		{ID: "missing", GPUName: "RTX 3060", PricePerHour: 0.1},
 		{ID: "zero median", GPUName: "H100", PricePerHour: 2},
+		{ID: "one gpu", GPUName: "RTX 5090", NumGPUs: 1, PricePerHour: 0.81},
+		{ID: "two gpus", GPUName: "RTX 5090", NumGPUs: 2, PricePerHour: 0.81},
 	}
-	got := withMarketPosition(offers, map[string]float64{"RTX 4090": 0.48, "A100": 1.2, "H100": 0})
-	want := map[string]*float64{"below": ptr(-12.5), "above": ptr(25.0), "missing": nil, "zero median": nil}
+	got := withMarketPosition(offers, map[string]float64{"RTX 4090": 0.48, "A100": 1.2, "H100": 0, "RTX 5090": 0.54})
+	want := map[string]*float64{"below": ptr(-12.5), "above": ptr(25.0), "missing": nil, "zero median": nil, "one gpu": ptr(50.0), "two gpus": nil}
 	for _, o := range got {
 		w := want[o.ID]
 		if (w == nil) != (o.MarketPositionPct == nil) || (w != nil && *w != *o.MarketPositionPct) {
