@@ -127,8 +127,12 @@ describe("createReservation", () => {
 
 describe("confirmReservation", () => {
   const SIG: string = fixture.confirm.request.signature;
-  // The implemented response adds failed_checks to the reservation (prd.md section 8).
-  const confirmed = () => ({ ...structuredClone(fixture.confirm.response), failed_checks: [] });
+  const confirmed = () => structuredClone(fixture.confirm.response);
+  const withoutFailedChecks = () => {
+    const body = confirmed();
+    delete body.failed_checks;
+    return body;
+  };
 
   it("posts the signature once and returns the confirmed reservation", async () => {
     const fetchImpl = vi.fn(async () => json(confirmed()));
@@ -152,7 +156,7 @@ describe("confirmReservation", () => {
     expect(() => decodeConfirmResponse({ ...confirmed(), failed_checks: ["signer"] }, CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
     expect(() => decodeConfirmResponse({ ...confirmed(), status: "failed", slot: null }, CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
     expect(() => decodeConfirmResponse({ ...confirmed(), status: "failed", slot: null, failed_checks: ["amount"] }, CONFIRMED_ID, SIG)).toThrow(/known check/);
-    expect(() => decodeConfirmResponse(fixture.confirm.response, CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
+    expect(() => decodeConfirmResponse(withoutFailedChecks(), CONFIRMED_ID, SIG)).toThrow(/failed_checks/);
     expect(() => decodeConfirmResponse(confirmed(), CONFIRMED_ID, "other")).toThrow(/signature/);
     expect(() => decodeConfirmResponse(confirmed(), "res_other", SIG)).toThrow(/reservation\.id/);
   });

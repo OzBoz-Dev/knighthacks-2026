@@ -96,7 +96,8 @@
       "payload_hash": "f0a0ca17be1b50d62f0e5343d4130e6e6d10b24446f8f5c0072c259e98a11536",
       "status": "confirmed",
       "signature": "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW",
-      "slot": 318452907
+      "slot": 318452907,
+      "failed_checks": []
     }
   },
   "verify": {
