@@ -60,7 +60,7 @@ export function describeProvenance({ source, timestamp }: Provenance): Provenanc
           : "Exported Databricks insights (export time unknown)",
       };
     case "dev-sample":
-      return { kind, label: "Development sample data — not live" };
+      return { kind, label: "Development sample data, not live" };
     case "unavailable":
       return { kind, label: "Pricing insights temporarily unavailable" };
     default:

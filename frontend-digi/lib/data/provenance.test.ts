@@ -5,21 +5,17 @@ import { describeProvenance, isLive, type DataSource } from "./provenance";
 const T = "2026-10-10T14:05:00Z";
 
 describe("describeProvenance", () => {
-  it("uses the PRD source labels", () => {
-    expect(describeProvenance({ source: "vast-live", timestamp: T }).label).toBe(
-      "Live Vast.ai inventory",
-    );
-    expect(describeProvenance({ source: "vast-saved", timestamp: T }).label).toBe(
-      "Saved market snapshot from Oct 10, 2026, 14:05 UTC",
-    );
-    expect(describeProvenance({ source: "databricks-live", timestamp: T }).label).toBe(
-      "Databricks insights updated at Oct 10, 2026, 14:05 UTC",
-    );
-  });
-
-  it("preserves the supplied timestamp rather than substituting the current time", () => {
-    const { label } = describeProvenance({ source: "databricks-export", timestamp: T });
-    expect(label).toContain("Oct 10, 2026, 14:05 UTC");
+  // The exact labels of prd.md section 4 and the source table of section 8, one case per source.
+  it.each([
+    ["vast-live", "live", "Live Vast.ai inventory"],
+    ["vast-saved", "saved", "Saved market snapshot from Oct 10, 2026, 14:05 UTC"],
+    ["databricks-live", "live", "Databricks insights updated at Oct 10, 2026, 14:05 UTC"],
+    ["databricks-export", "saved", "Exported Databricks insights from Oct 10, 2026, 14:05 UTC"],
+    ["dev-sample", "sample", "Development sample data, not live"],
+    ["unavailable", "unavailable", "Pricing insights temporarily unavailable"],
+    ["unknown", "unknown", "Data source unknown"],
+  ] as const)("labels %s", (source, kind, label) => {
+    expect(describeProvenance({ source, timestamp: T })).toEqual({ kind, label });
   });
 
   it("labels missing timestamps as unknown instead of inventing one", () => {
@@ -28,6 +24,9 @@ describe("describeProvenance", () => {
     );
     expect(describeProvenance({ source: "databricks-live", timestamp: "garbage" }).label).toBe(
       "Databricks insights (update time unknown)",
+    );
+    expect(describeProvenance({ source: "databricks-export", timestamp: null }).label).toBe(
+      "Exported Databricks insights (export time unknown)",
     );
   });
 
