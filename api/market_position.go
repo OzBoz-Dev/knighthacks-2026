@@ -98,9 +98,13 @@ func (m *medianSource) status(ctx context.Context) string {
 
 // withMarketPosition returns a copy of the offers with market_position_pct set from the GPU median.
 // The copy keeps the cached snapshot unchanged. An offer with no median keeps null.
+// The median comes from single-GPU listings, so a multi-GPU offer keeps null too (#38).
 func withMarketPosition(offers []contract.Offer, medians map[string]float64) []contract.Offer {
 	out := slices.Clone(offers)
 	for i := range out {
+		if out[i].NumGPUs > 1 {
+			continue
+		}
 		if m, ok := medians[out[i].GPUName]; ok && m > 0 {
 			p := math.Round((out[i].PricePerHour-m)/m*100*100) / 100
 			out[i].MarketPositionPct = &p
