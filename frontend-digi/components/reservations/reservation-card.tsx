@@ -2,12 +2,13 @@
 
 import { ActionIcon, Anchor, CopyButton, Group, Paper, Text, Title, Tooltip } from "@mantine/core";
 import { IconCheck, IconCopy, IconExternalLink } from "@tabler/icons-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Reservation } from "@/lib/api/types";
 import { formatGb, formatTimestamp, formatUsdPerHour } from "@/lib/format";
 import { explorerTxUrl, priorityLabel, shorten } from "@/lib/reservations/receipt";
-import { reservationStatus } from "@/lib/reservations/status";
+import { reservationStatus, type VerificationOutcome } from "@/lib/reservations/status";
 import { StatusBadge } from "./status-badge";
+import { VerifyPanel } from "./verify-panel";
 import styles from "./reservations.module.css";
 
 function Copyable({ value, label }: { value: string; label: string }) {
@@ -36,8 +37,9 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function ReservationCard({ reservation, footer }: { reservation: Reservation; footer?: ReactNode }) {
-  const status = reservationStatus({ status: reservation.status });
+export function ReservationCard({ reservation }: { reservation: Reservation }) {
+  const [verification, setVerification] = useState<VerificationOutcome>();
+  const status = reservationStatus({ status: reservation.status, verification });
   const titleId = `reservation-${reservation.id}-title`;
   return (
     <Paper component="li" withBorder p="md" radius="sm" aria-labelledby={titleId} className={styles.card}>
@@ -74,7 +76,7 @@ export function ReservationCard({ reservation, footer }: { reservation: Reservat
           ? "A signed reservation intent on Solana devnet. It is not a booking or a payment."
           : "A reservation intent that is not signed yet. It is not a booking or a payment."}
       </Text>
-      {footer}
+      <VerifyPanel reservation={reservation} onOutcome={setVerification} />
     </Paper>
   );
 }

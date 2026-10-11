@@ -57,7 +57,7 @@ export function ReservationList() {
             {view.rows.length} {view.rows.length === 1 ? "reservation" : "reservations"} for this wallet, newest first
           </Text>
           <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-            {view.rows.map((reservation) => <ReservationCard key={reservation.id} reservation={reservation} />)}
+            {view.rows.map((reservation) => <ReservationCard key={`${reservation.id}:${reservation.signature ?? ""}`} reservation={reservation} />)}
           </Stack>
         </section>
       );
