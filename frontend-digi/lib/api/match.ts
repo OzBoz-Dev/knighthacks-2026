@@ -1,28 +1,8 @@
 import { apiRequest, type RequestOptions } from "./client";
-import { count, fail, flag, list, nullableNumber, number, record, text } from "./decode";
-import type { MatchRequest, MatchResponse, Offer, Recommendation } from "./types";
+import { count, decodeOffer, fail, list, number, record, text } from "./decode";
+import type { MatchRequest, MatchResponse, Recommendation } from "./types";
 
 export const EXCLUSION_KEYS = ["gpu_model", "region", "vram", "reliability", "budget"] as const;
-
-export function decodeOffer(value: unknown, path = "offer"): Offer {
-  const o = record(value, path);
-  return {
-    id: text(o.id, `${path}.id`),
-    gpu_name: text(o.gpu_name, `${path}.gpu_name`),
-    num_gpus: count(o.num_gpus, `${path}.num_gpus`) || fail(`${path}.num_gpus`, "is zero"),
-    gpu_ram_gb: number(o.gpu_ram_gb, `${path}.gpu_ram_gb`, 0),
-    total_vram_gb: number(o.total_vram_gb, `${path}.total_vram_gb`, 0),
-    region: text(o.region, `${path}.region`),
-    price_per_hour: number(o.price_per_hour, `${path}.price_per_hour`, Number.MIN_VALUE),
-    // #26 fixes reliability as a ratio from 0 to 1.
-    reliability: number(o.reliability, `${path}.reliability`, 0, 1),
-    dlperf: nullableNumber(o.dlperf, `${path}.dlperf`, 0),
-    performance_per_dollar: nullableNumber(o.performance_per_dollar, `${path}.performance_per_dollar`, 0),
-    verified: flag(o.verified, `${path}.verified`),
-    market_position_pct: nullableNumber(o.market_position_pct, `${path}.market_position_pct`),
-    price_percentile: nullableNumber(o.price_percentile, `${path}.price_percentile`),
-  };
-}
 
 function decodeRecommendation(value: unknown, path: string): Recommendation {
   const r = record(value, path);
