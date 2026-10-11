@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
+import { Badge, Box, Group, List, Paper, Stack, Text, Title } from "@mantine/core";
 import type { MatchRequest, MatchResponse, Recommendation } from "@/lib/api/types";
 import { formatGb, formatPercent, formatUsdPerHour } from "@/lib/format";
 import { DataSourceLabel } from "@/components/shared/data-source-label";
@@ -9,11 +9,13 @@ import { MarketPositionBadge } from "@/components/explore/market-position-badge"
 import { suggestion } from "@/lib/match/suggestion";
 import { ScoreBreakdown } from "./score-breakdown";
 import { ExclusionSummary } from "./exclusion-summary";
+import { FundingNotice } from "@/components/solana/funding-notice";
+import { ReserveButton } from "@/components/solana/reserve-button";
 
 // shortcut: MatchResponse has no source or capture time, so the label says unknown, upgrade when #26 adds them to the match response.
 const MATCH_PROVENANCE = { source: "unknown", timestamp: null } as const;
 
-function ResultCard({ rec, priority }: { rec: Recommendation; priority: MatchRequest["priority"] }) {
+function ResultCard({ rec, request, requestId, snapshotId }: { rec: Recommendation; request: MatchRequest; requestId: string; snapshotId: string }) {
   const { offer } = rec;
   return (
     <Paper component="li" withBorder p="md" radius="sm" aria-labelledby={`match-result-${offer.id}`}>
@@ -37,7 +39,10 @@ function ResultCard({ rec, priority }: { rec: Recommendation; priority: MatchReq
       <List fz={13} mt="sm" spacing={2}>
         {rec.explanations.map((line) => <List.Item key={line}>{line}</List.Item>)}
       </List>
-      <ScoreBreakdown breakdown={rec.score_breakdown} priority={priority} missingPerformance={offer.dlperf === null} />
+      <ScoreBreakdown breakdown={rec.score_breakdown} priority={request.priority} missingPerformance={offer.dlperf === null} />
+      <Box mt="sm" pt="sm" style={{ borderTop: "1px solid var(--dg-rule)" }}>
+        <ReserveButton requestId={requestId} snapshotId={snapshotId} request={request} offer={offer} />
+      </Box>
     </Paper>
   );
 }
@@ -56,9 +61,11 @@ export function MatchResults({ response, request }: { response: MatchResponse; r
       </Group>
       <ExclusionSummary response={response} />
       <Text fz={11} c="dimmed" mt={6} mb="sm">The match API does not send the data source or capture time yet. Snapshot {response.snapshot_id}.</Text>
+      {/* One notice for every result, so the five Reserve buttons do not repeat it. */}
+      {response.recommendations.length > 0 && <Box mb="sm"><FundingNotice /></Box>}
       {response.recommendations.length ? (
         <Stack component="ol" gap="sm" p={0} m={0} style={{ listStyle: "none" }}>
-          {response.recommendations.map((rec) => <ResultCard key={rec.offer.id} rec={rec} priority={request.priority} />)}
+          {response.recommendations.map((rec) => <ResultCard key={rec.offer.id} rec={rec} request={request} requestId={response.request_id} snapshotId={response.snapshot_id} />)}
         </Stack>
       ) : (
         <EmptyState title="No offers meet your requirements" description={suggestion(response.excluded, request)} />
