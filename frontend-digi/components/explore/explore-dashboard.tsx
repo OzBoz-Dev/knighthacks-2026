@@ -2,7 +2,8 @@
 
 import { Group, Stack, Text, Title, Tooltip } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 import type { Offer } from "@/lib/api/types";
 import type { DashboardData, OfferFilters as Filters, TableSort } from "@/lib/explore/types";
 import { buildMarketOverview, DEFAULT_FILTERS, filterOffers, getModelOffers, largestExclusion, sortOffers, TABLE_PAGE_SIZE, visibleModelOffers } from "@/lib/explore/selectors";
@@ -28,6 +29,10 @@ export function ExploreDashboard({ data, error }: { data: DashboardData | null; 
   const sample = data?.provenance.source === "dev-sample";
   // After new data arrives, the drawer shows the offer from the new snapshot, or closes if it is gone.
   const shownOffer = selectedOffer && (offers.find((o) => o.id === selectedOffer.id) ?? null);
+  const router = useRouter();
+  const [retrying, startRetry] = useTransition();
+  // Runs the server data load again. The transition keeps the button busy until the new data renders.
+  const retry = () => startRetry(() => router.refresh());
   const reliabilityUnit = data?.reliabilityUnit ?? "ratio";
   const models = useMemo(() => [...new Set(offers.map((o) => o.gpu_name))].sort(), [offers]);
   const regions = useMemo(() => [...new Set(offers.map((o) => o.region))].sort(), [offers]);
@@ -51,7 +56,7 @@ export function ExploreDashboard({ data, error }: { data: DashboardData | null; 
   return (
     <Stack gap={12} className={styles.dashboard}>
       <ExploreToolbar search={filters.search} onSearch={(search) => changeFilters({ search })} overview={overview} sample={sample} searchDisabled={!data} />
-      {error && <ErrorState title="Couldn't load GPU offers" message={`${error} No sample data is shown in its place.`} />}
+      {error && <ErrorState title="Couldn't load GPU offers" message={`${error} No sample data is shown in its place.`} onRetry={retry} retrying={retrying} />}
       <RegionMarket offers={offers} history={data?.history ?? []} provenance={provenance} model={filters.model} region={filters.region} onModel={(model) => changeFilters({ model })} onRegion={(region) => changeFilters({ region })} onDetails={setSelectedOffer} />
       <OfferFilters filters={filters} models={models} regions={regions} onChange={changeFilters} onReset={resetFilters} disabled={!data} />
       <section aria-labelledby="gpu-models-title">
