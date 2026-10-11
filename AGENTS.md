@@ -188,8 +188,24 @@ Run the checks for each area that your change touches. Paste the results in the 
 | `frontend-digi/` | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` |
 | `api/` | `gofmt -l .` (prints nothing), `go vet ./...`, `go test ./...`, `go build ./...` |
 | `databricks/` | Run the changed notebook or script, and paste the row counts |
+| Every pull request | `bash scripts/check-style.sh <file>` on the files you changed and on a file that holds your pull request title and body |
 
 Use `npm ci`, not `npm install`, unless you add a dependency on purpose.
+
+### CI jobs
+
+`.github/workflows/ci.yml` runs on every pull request into `main`. Run the same commands before
+you push, so the pull request is green on the first run.
+
+| Job | Runs when | Steps |
+|---|---|---|
+| `changes` | Always | Lists the changed paths and tells the two folder jobs whether to run |
+| `style` | Always | `scripts/check-style.sh` on the pull request title, the body, and the commit messages on the branch: no emoji, no em dash, no en dash. Then the title check: `<type>(<scope>): <subject>`, with the types and scopes from this page, a lower case start, no full stop, 72 characters or fewer |
+| `api` | `api/` or `ci.yml` changed | `gofmt -l .` (prints nothing), `go vet ./...`, `go test ./...`, `go build ./...` |
+| `frontend` | `frontend-digi/` or `ci.yml` changed | Node 24, `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` |
+
+A job that does not run reports "skipped", which counts as a pass. The `style` job always
+reports a result, so a docs-only pull request still has one check.
 
 ## Writing rules
 
