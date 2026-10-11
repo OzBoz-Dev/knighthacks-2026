@@ -2,8 +2,10 @@
 
 import { MantineProvider } from "@mantine/core";
 import type { ReactNode } from "react";
+import { SolanaWalletProvider } from "@/components/solana/wallet-provider";
 import { cssVariablesResolver, theme } from "@/theme";
 
+// The wallet provider renders no DOM and connects only in effects after hydration, so it can render on the server.
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <MantineProvider
@@ -11,7 +13,7 @@ export function Providers({ children }: { children: ReactNode }) {
       cssVariablesResolver={cssVariablesResolver}
       forceColorScheme="dark"
     >
-      {children}
+      <SolanaWalletProvider>{children}</SolanaWalletProvider>
     </MantineProvider>
   );
 }
