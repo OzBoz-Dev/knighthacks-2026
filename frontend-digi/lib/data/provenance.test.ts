@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ApiSource } from "../api/types";
 import { describeProvenance, isLive, type DataSource } from "./provenance";
 
 const T = "2026-10-10T14:05:00Z";
@@ -8,7 +9,7 @@ describe("describeProvenance", () => {
     expect(describeProvenance({ source: "vast-live", timestamp: T }).label).toBe(
       "Live Vast.ai inventory",
     );
-    expect(describeProvenance({ source: "vast-snapshot", timestamp: T }).label).toBe(
+    expect(describeProvenance({ source: "vast-saved", timestamp: T }).label).toBe(
       "Saved market snapshot from Oct 10, 2026, 14:05 UTC",
     );
     expect(describeProvenance({ source: "databricks-live", timestamp: T }).label).toBe(
@@ -22,7 +23,7 @@ describe("describeProvenance", () => {
   });
 
   it("labels missing timestamps as unknown instead of inventing one", () => {
-    expect(describeProvenance({ source: "vast-snapshot", timestamp: null }).label).toBe(
+    expect(describeProvenance({ source: "vast-saved", timestamp: null }).label).toBe(
       "Saved market snapshot (capture time unknown)",
     );
     expect(describeProvenance({ source: "databricks-live", timestamp: "garbage" }).label).toBe(
@@ -45,11 +46,19 @@ describe("describeProvenance", () => {
   });
 });
 
+describe("API source names", () => {
+  it("knows every source that the API sends", () => {
+    // The Record type fails to compile when ApiSource gains a value that this list lacks.
+    const api = Object.keys({ "vast-live": 1, "vast-saved": 1, "databricks-live": 1, "databricks-export": 1 } satisfies Record<ApiSource, 1>) as ApiSource[];
+    for (const source of api) expect(describeProvenance({ source, timestamp: T }).kind).not.toBe("unknown");
+  });
+});
+
 describe("isLive", () => {
   it("is true only for live sources", () => {
     const sources: DataSource[] = [
       "vast-live",
-      "vast-snapshot",
+      "vast-saved",
       "databricks-live",
       "databricks-export",
       "dev-sample",

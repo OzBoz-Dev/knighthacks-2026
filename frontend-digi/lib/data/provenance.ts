@@ -1,12 +1,13 @@
 import { formatTimestamp } from "../format";
 
-export type InventorySource = "vast-live" | "vast-snapshot" | "dev-sample" | "unknown";
+export type InventorySource = "vast-live" | "vast-saved" | "dev-sample" | "unknown";
 export type InsightsSource =
   | "databricks-live"
   | "databricks-export"
   | "dev-sample"
   | "unavailable"
   | "unknown";
+// dev-sample, unavailable, and unknown are frontend states. The API sends only ApiSource values.
 export type DataSource = InventorySource | InsightsSource;
 
 export type Provenance<S extends DataSource = DataSource> = {
@@ -24,7 +25,7 @@ export type ProvenanceDescription = {
 const KIND: Record<DataSource, ProvenanceKind> = {
   "vast-live": "live",
   "databricks-live": "live",
-  "vast-snapshot": "saved",
+  "vast-saved": "saved",
   "databricks-export": "saved",
   "dev-sample": "sample",
   unavailable: "unavailable",
@@ -41,7 +42,7 @@ export function describeProvenance({ source, timestamp }: Provenance): Provenanc
   switch (source) {
     case "vast-live":
       return { kind, label: "Live Vast.ai inventory" };
-    case "vast-snapshot":
+    case "vast-saved":
       return {
         kind,
         label: time ? `Saved market snapshot from ${time}` : "Saved market snapshot (capture time unknown)",
