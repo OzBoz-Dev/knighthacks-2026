@@ -4,6 +4,7 @@ import { ActionIcon, Badge, Button, CopyButton, Group, Popover, Stack, Text, Too
 import { IconCheck, IconCopy, IconWallet } from "@tabler/icons-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import Image from "next/image";
 import { shorten } from "@/lib/reservations/receipt";
 import { formatSol } from "@/lib/solana/balance";
 import { useSolBalance } from "./balance-provider";
@@ -20,7 +21,7 @@ export function WalletButton({ fullWidth = false }: { fullWidth?: boolean }) {
 
   if (!publicKey) {
     return (
-      <Button variant="default" size="sm" fullWidth={fullWidth} loading={connecting} onClick={() => setVisible(true)} leftSection={<IconWallet size={17} aria-hidden />}>
+      <Button variant="default" size="sm" fullWidth={fullWidth} loading={connecting} onClick={() => setVisible(true)} leftSection={<Image src="/phantom.svg" width={17} height={17} alt="" />}>
         Connect Phantom
       </Button>
     );
