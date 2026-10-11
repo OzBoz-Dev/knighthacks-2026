@@ -42,7 +42,7 @@
           "reliability": 100
         },
         "explanations": [
-          "24 GB VRAM meets your 24 GB requirement.",
+          "24 GB VRAM per GPU meets your 24 GB requirement.",
           "$0.42/hour, 12.5% below the typical price for an RTX 4090.",
           "99.2% reliability."
         ]
@@ -71,7 +71,7 @@
           "reliability": 0
         },
         "explanations": [
-          "48 GB VRAM meets your 24 GB requirement.",
+          "24 GB VRAM per GPU meets your 24 GB requirement.",
           "98.1% reliability."
         ]
       }
