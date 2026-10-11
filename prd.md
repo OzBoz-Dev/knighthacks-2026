@@ -137,7 +137,8 @@ The product always labels its data source:
 
 - `Live Vast.ai inventory`
 - `Databricks insights updated at {time}`
-- `Saved market snapshot from {time}` when using fallback data
+- `Saved market snapshot from {time}` for saved Vast.ai inventory
+- `Exported Databricks insights from {time}` for the saved gold export
 
 Never present fixture data as live.
 
@@ -152,7 +153,7 @@ Never present fixture data as live.
 - Columns: GPU, GPU count, VRAM per GPU, region, hourly price, reliability, performance score, verified host.
 - Filters:
   - GPU model
-  - minimum total VRAM
+  - minimum VRAM per GPU
   - maximum hourly price
   - region
   - minimum reliability
@@ -181,7 +182,7 @@ Never present fixture data as live.
 ### 5.2 Match
 
 #### Inputs
-- Minimum total VRAM in GB.
+- Minimum VRAM per GPU in GB, sent as `min_vram_gb`.
 - Maximum hourly budget.
 - Optional GPU-model allowlist.
 - Optional region.
@@ -196,7 +197,7 @@ Apply in this order and count the first reason each offer fails:
 
 1. GPU model, if specified.
 2. Region, if specified.
-3. Total VRAM.
+3. VRAM per GPU (`gpu_ram_gb`).
 4. Reliability.
 5. Hourly budget.
 
@@ -233,7 +234,8 @@ Example explanations:
 - “99.2% reliability.”
 - “Best performance-per-dollar among the suitable offers.”
 
-If no offers qualify, use the exclusion counts to give one useful suggestion, such as “Budget excluded 48 offers; try raising it above $1.20/hour.”
+If no offers qualify, use the largest exclusion count to suggest one change, such as raising the budget.
+The API does not return the eligibility threshold or its internal suggestion. Do not invent a price or VRAM value that would make an offer qualify.
 
 ### 5.3 My Reservations
 
@@ -244,7 +246,7 @@ If no offers qualify, use the exclusion counts to give one useful suggestion, su
 4. Phantom signs a Solana devnet transaction containing a Memo:
 
    ```text
-   CX1|<reservation_id>|<payload_hash>
+   SG1|<reservation_id>|<payload_hash>
    ```
 
 5. Frontend confirms the transaction.
@@ -265,17 +267,21 @@ Verification occurs inside My Reservations; do not build a separate fourth featu
 
 Checks:
 - transaction exists on Solana devnet;
-- connected wallet signed;
+- the stored reservation wallet (`Reservation.wallet`) signed;
 - Memo has the correct reservation ID;
 - Memo hash equals SHA-256 of the stored canonical payload;
 - transaction is confirmed.
 
-Status is one of:
+The UI status is one of:
 - Pending signature
 - Confirming
 - Verified on Solana
 - Signature rejected
 - Verification failed
+
+The stored API status remains `pending`, `confirmed`, or `failed`. Confirming and Signature rejected come from the frontend signing flow.
+An RPC error means verification is unavailable; it does not prove that a receipt failed a check.
+The API and frontend checks that establish each result are specified in section 8.
 
 ---
 
@@ -474,31 +480,254 @@ export type Reservation = {
 };
 ```
 
+### API response contract
+
+The wire formats below describe the implemented Go API. The domain types above keep their existing fields.
+Only offers, market summary, and market trends use the data envelope. Health, Match, and reservation endpoints return their own objects or arrays.
+
+```ts
+export type ApiSource =
+  | "vast-live"
+  | "vast-saved"
+  | "databricks-live"
+  | "databricks-export";
+
+export type ApiEnvelope<T> = {
+  source: ApiSource;
+  captured_at: string;
+  snapshot_id: string | null;
+  data: T;
+};
+
+export type ApiErrorCode =
+  | "bad_request"
+  | "not_found"
+  | "upstream_unavailable"
+  | "internal";
+
+export type ApiErrorResponse = {
+  error: { code: ApiErrorCode; message: string };
+};
+
+export type ComponentStatus = "ok" | "fixture" | "unavailable";
+
+export type HealthResponse = {
+  status: "ok" | "degraded";
+  components: {
+    vast: ComponentStatus;
+    databricks: ComponentStatus;
+    sqlite: "ok";
+  };
+  fixtures: { vast: boolean; databricks: boolean };
+};
+
+export type CreateReservationRequest = {
+  request_id: string;
+  snapshot_id: string;
+  offer_id: string;
+  wallet: string;
+  min_vram_gb: number;
+  max_price_per_hour: number;
+  priority: MatchRequest["priority"];
+  region?: string | null;
+};
+
+export type ConfirmReservationRequest = { signature: string };
+
+export type ReceiptCheckName =
+  | "exists"
+  | "signer"
+  | "reservation_id"
+  | "memo_hash"
+  | "confirmed";
+
+export type ConfirmReservationResponse = Reservation & {
+  failed_checks: ReceiptCheckName[];
+};
+
+export type ReceiptCheck = {
+  name: ReceiptCheckName;
+  passed: boolean;
+  detail: string;
+};
+
+export type VerifyReservationResponse = {
+  reservation_id: string;
+  signature: string;
+  slot: number | null;
+  checks: ReceiptCheck[];
+};
+```
+
+### Sources and capture times
+
+| Endpoint family | Allowed source | Frontend label |
+|---|---|---|
+| Offers | `vast-live` | `Live Vast.ai inventory` |
+| Offers | `vast-saved` | `Saved market snapshot from {time}` |
+| Market summary and trends | `databricks-live` | `Databricks insights updated at {time}` |
+| Market summary and trends | `databricks-export` | `Exported Databricks insights from {time}` |
+
+- `captured_at` is an RFC 3339 UTC data timestamp, never the fetch time or the current browser time.
+- Offers use the original snapshot capture time. A cached or saved response retains that time.
+- Live summary uses `MarketSummary.updated_at`. Live trends use the last returned point's timestamp.
+- A live query with no matching rows uses the newest data time in its gold table. If that time is unavailable, fallback applies.
+- Export responses use the file's `exported_at`. The export script sets it to the newest exported snapshot time, not its `generated_at` run time.
+- Preserve each summary's `updated_at` and each trend point's `timestamp`; the envelope does not replace them.
+- Every envelope includes `snapshot_id`. Offers return a string; live market queries currently return `null`; exports preserve the file's string or `null`.
+- Treat snapshot IDs as opaque identifiers. Do not derive timestamps from their spelling.
+- `dev-sample`, `unknown`, and `unavailable` are frontend states, not Go envelope source values. Never relabel synthetic examples as real saved data.
+- Match and reservation responses have no source envelope. Match's `snapshot_id` alone does not establish live or saved provenance.
+
+### Units and field meaning
+
+| Fields | Unit or meaning |
+|---|---|
+| `Offer.reliability`, `MarketSummary.median_reliability`, `MatchRequest.min_reliability` | Ratio from 0 to 1. The frontend displays a percentage; 95% is sent as `0.95`. |
+| `Offer.gpu_ram_gb` | VRAM per GPU. Normalization rounds Vast's `gpu_ram / 1024` to the nearest whole GB. |
+| `Offer.total_vram_gb` | `num_gpus * gpu_ram_gb`. It is not the Match memory eligibility field. |
+| `MatchRequest.min_vram_gb` | Minimum VRAM per GPU. The API compares it with `gpu_ram_gb`. |
+| `price_per_hour`, `max_price_per_hour`, summary and trend prices | USD per hour. An offer price is the quote for the whole offer, not a per-GPU division. |
+| `dlperf` | Vast's per-machine performance value, or `null`. |
+| `performance_per_dollar` | `dlperf / price_per_hour`, or `null` when performance is unavailable. |
+| `market_position_pct` | Percentage above or below the GPU median: `(price - median) / median * 100`, rounded to two decimals. Negative means below typical. |
+| `price_percentile` | Nullable field preserved by the contract. Live normalization does not populate it. |
+| `score`, each `score_breakdown` value | Score from 0 to 100. Breakdown values are independent normalized scores, not percentages that sum to 100. |
+| `listing_count`, `checked`, `eligible`, `excluded` | Counts of offers, not physical GPUs. |
+| `Reservation.min_vram_gb` | The submitted requirement, stored without conversion. Historical payloads do not record a VRAM-rule version. |
+| `created_at`, `updated_at`, `timestamp` | UTC data times. Reservation creation time is not a Solana confirmation time. |
+
 ### Endpoints
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/health` | Vast, Databricks, SQLite, and source status |
-| GET | `/api/offers` | live or saved normalized offers |
-| GET | `/api/market/summary?gpu_name=...` | Databricks gold summary |
-| GET | `/api/market/trends?gpu_name=...&region=...` | Databricks gold trend points |
-| POST | `/api/match` | ranked suitable offers |
-| POST | `/api/reservations` | create pending intent |
-| POST | `/api/reservations/{id}/confirm` | independently verify Solana transaction |
-| GET | `/api/reservations?wallet=...` | wallet reservations |
-| GET | `/api/reservations/{id}/verify` | rerun on-chain receipt checks |
+Successful JSON responses have `Content-Type: application/json`.
 
+| Method | Path | HTTP status | Response body |
+|---|---|---|---|
+| GET | `/api/health` | 200 | `HealthResponse` |
+| GET | `/api/offers` | 200 | `ApiEnvelope<Offer[]>` |
+| GET | `/api/market/summary?gpu_name=...` | 200 | `ApiEnvelope<MarketSummary \| null>` |
+| GET | `/api/market/trends?gpu_name=...&region=...` | 200 | `ApiEnvelope<TrendPoint[]>` |
+| POST | `/api/match` | 200 | `MatchResponse` |
+| POST | `/api/reservations` | 201 | `Reservation` |
+| POST | `/api/reservations/{id}/confirm` | 200 | `ConfirmReservationResponse` |
+| GET | `/api/reservations?wallet=...` | 200 | `Reservation[]` |
+| GET | `/api/reservations/{id}/verify` | 200 | `VerifyReservationResponse` |
+
+The current API has no GPU Index endpoint. Its gold table and export do not imply an implemented route.
 The Databricks client uses named SQL parameters. Never interpolate request values into SQL.
+
+#### Offers and market reads
+
+- `/api/offers` returns normalized inventory without server-side query filters. Explore filters locally; `/api/match` applies the Match requirements.
+- Offers use a 60-second cache. A failed refresh serves the last successful in-memory snapshot as `vast-saved` when available.
+- If no in-memory snapshot is available, a configured saved Vast file can supply the fallback. If neither source can supply data, return 503.
+- `USE_VAST_FIXTURE=1` reads `fixtures/vast_offers.json` without a Vast request. A missing or invalid file makes offers and Match return 503.
+- The API computes market position from an available gold median. Without a median it leaves the offer's existing value unchanged; live-normalized offers have `null`.
+- Both market endpoints require a nonblank `gpu_name`. Trends use `region=all` when region is omitted or blank, not a mixture of regional rows.
+- Summary returns the latest row for the GPU. A successful query with no row returns `data: null`, not 404.
+- Trends return points in ascending timestamp order. No matching points returns `data: []`, not 404.
+- Successful Databricks query results are cached for five minutes. Query errors are not cached as successful results.
+- A market query failure falls back to the loaded gold export. With no usable source, return 503 `upstream_unavailable`.
+- `USE_DATABRICKS_FIXTURE=1` skips live warehouse queries and uses the export. No response substitutes synthetic development data.
+
+#### Health
+
+- A successful health request returns 200 even when `status` is `degraded`.
+- `status` is `degraded` if Vast or Databricks reports `unavailable`; otherwise it is `ok`.
+- SQLite failure returns 503 `ApiErrorResponse`, not a `HealthResponse` with a failed SQLite component.
+- `fixtures` reports configured fixture flags, not the provenance of another request.
+- Vast health uses the last inventory result; it does not make a new Vast request. Fixture mode reports `fixture`.
+- Databricks health checks the live median source when configured. A live failure can report `unavailable` even when a market request can use an export.
+- Without a live Databricks source, a loaded export reports `fixture`; no source reports `unavailable`.
+- Health is not proof that fixture files are valid or that a particular offer or Match response is live. Use each response's metadata where available.
+
+#### Match
+
+- Submit `MatchRequest`. The API validates nonnegative `min_vram_gb`, positive `max_price_per_hour`, ratio reliability, and one of the three priorities.
+- The frontend supplies the 95% reliability and Balanced defaults. The API does not apply those UI defaults to omitted fields.
+- Each excluded offer counts only against its first failed filter. `checked` equals `eligible` plus the sum of the exclusion counts.
+- Recommendations contain up to five eligible offers, with consecutive ranks from 1. No eligible offers returns `recommendations: []` with HTTP 200.
+- The API normalizes over all eligible offers. Equal component values score 100; missing `dlperf` gives a performance component of 0.
+- Overall scores are rounded to two decimals before ranking. Lower price, higher reliability, and offer ID break equal-score ties.
+- Missing Databricks medians do not prevent ranking. The API omits median-price explanations when no median is available.
+- `MatchResponse` has no suggestion, source, capture time, or echoed request. Keep the submitted request with its results in the frontend.
+- The frontend may use exclusion counts for qualitative advice. It must not invent an eligible budget or VRAM threshold.
+
+#### Reservation creation and listing
+
+- Submit `CreateReservationRequest`. The wallet must parse as a Solana public key; IDs must be nonempty and the snapshot must contain the offer.
+- The API retains the last 15 distinct inventory snapshots in memory. A missing or expired snapshot/offer pair returns 400 `bad_request`.
+- Request validation requires nonnegative VRAM, positive budget, and an allowed priority. An omitted, null, or empty region is stored as `null`.
+- GPU name and quoted price come from the stored snapshot offer, not from caller-supplied price or GPU fields.
+- Creation returns a new pending reservation with the exact canonical payload, its hash, and `signature: null`, `slot: null`.
+- Creation has no idempotency key. Repeating it can create another reservation; do not automatically retry this POST.
+- The create handler does not rerun Match eligibility or authenticate wallet ownership. A reservation is not a GPU booking.
+- Listing requires a nonblank wallet query. It returns a plain array ordered by `created_at` descending, then ID descending; an empty list is `[]`.
+- Listing by a public address is not authentication. The API has no user session or private-account access control.
+
+#### Reservation confirmation and verification
+
+- Submit `ConfirmReservationRequest` with a valid Solana transaction signature. A nonexistent reservation returns 404.
+- A confirmed record with the same signature returns its stored reservation and `failed_checks: []` without another RPC check.
+- A different signature for a record that already has one returns 400. The API does not overwrite that receipt.
+- RPC checks have a ten-second request timeout. RPC failure returns 503 without marking a pending record failed.
+- A pending transaction not yet visible on devnet also returns 503 and stays pending. Retry confirmation with the same signature after a delay.
+- A found transaction that fails checks changes a pending reservation to `failed` and retains its signature. Passing all checks stores `confirmed`, signature, and slot.
+- Confirmation can return HTTP 200 with `status: "failed"` and nonempty `failed_checks`. Check the body; HTTP success alone does not mean verified.
+- Failed records stay failed. A repeat confirm can return the reasons; an inconsistent later all-pass RPC result returns 503 rather than promote the record.
+- `/verify` uses the stored signature, runs the checks again, and does not change the record. A record without a signature returns 400.
+- Verification returns the five check names in the order shown in `ReceiptCheckName`, with `passed` and `detail` for each.
+- A missing transaction gives five false checks, `detail: "transaction not found"`, and `slot: null` with HTTP 200. There is no wire-level `not-run` state.
+- The signer check compares against `Reservation.wallet`, never the wallet currently connected in the browser.
+- The Go verifier accepts Memo v1 or v2 and uses the first instruction with the expected prefix. It does not reject multiple matching memos.
+- `memo_hash` compares the memo value with the stored `payload_hash`. `/verify` does not recompute the hash of `canonical_payload`.
+- The frontend must hash the exact stored payload bytes separately to establish that the payload still matches its stored hash.
+- `confirmed` requires transaction metadata without an error from a confirmed-commitment RPC read. The response contains a slot, not a block-time field.
+- Persisted statuses are only `pending`, `confirmed`, and `failed`. Confirming and Signature rejected are frontend flow states, not stored API values.
+
+### Errors and request boundaries
+
+Application handlers return `ApiErrorResponse` with the HTTP status below. An error is not wrapped in a data envelope.
+
+| HTTP status | `error.code` | Meaning |
+|---|---|---|
+| 400 | `bad_request` | Invalid body, invalid field, missing required query, unusable snapshot, conflicting signature, or receipt without a signature. |
+| 404 | `not_found` | Unknown reservation or unmatched endpoint. The current catch-all also returns this for a wrong method on a known path. |
+| 503 | `upstream_unavailable` | Inventory, market data, devnet, or the health database check is unavailable; also a transaction not yet visible during confirmation. |
+| 500 | `internal` | Internal, storage, or handler recovery error. |
+
+`error.message` is user-facing text. Use `error.code` and HTTP status for logic instead of matching message strings.
+
+| Endpoint | Expected error statuses |
+|---|---|
+| Health | 503 |
+| Offers | 503 |
+| Market summary and trends | 400, 503 |
+| Match | 400, 503, 500 |
+| Create reservation | 400, 500 |
+| Confirm reservation | 400, 404, 503, 500 |
+| List reservations | 400, 500 |
+| Verify reservation | 400, 404, 503, 500 |
+
+Handler recovery can produce 500 on any endpoint. Read-only requests can be retried deliberately; do not automatically replay mutations.
+POST handlers limit body reads to 64 KiB and reject unknown JSON object fields. The Go struct decoder supplies zero values for omitted scalar fields.
+Send the complete intended request rather than rely on omission as a default.
+
+CORS allows the single origin configured by `ALLOWED_ORIGIN`, with `GET`, `POST`, and the `Content-Type` request header.
+A matching browser preflight returns 204 with no JSON body. CORS is not API authentication.
 
 ### Canonical reservation payload
 
-The API builds `canonical_payload` once and stores it. The frontend and the verifier use that exact string and never encode it again.
+The API builds `canonical_payload` once and stores it. The frontend hashes that exact string and never encodes it again.
 
 - Build the payload from a `map[string]any`. `encoding/json` sorts map keys, but it keeps struct fields in declaration order.
 - Encode with `json.Marshal`, with no indentation and no extra spaces.
 - `payload_hash` is the lowercase hex SHA-256 of the payload bytes.
+- The payload contains `id`, `request_id`, `snapshot_id`, `offer_id`, `wallet`, `gpu_name`, `price_per_hour`, `min_vram_gb`, `max_price_per_hour`, `priority`, `region`, and `created_at`.
+- Status, signature, and slot are not part of the canonical payload. Later confirmation does not change its bytes.
 
-Memo format: `CX1|<reservation_id>|<payload_hash>`.
+Memo format accepted by the Go API: `SG1|<reservation_id>|<payload_hash>`.
+The P3 signer must use the same prefix. An older frontend that emits `DG1` does not satisfy this API contract.
 
 ---
 
