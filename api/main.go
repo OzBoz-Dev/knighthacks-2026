@@ -52,7 +52,7 @@ func main() {
 	mux.HandleFunc("GET /api/offers", offersHandler(offers, medians.get))
 	mux.HandleFunc("POST /api/match", matchHandler(offers, medians.get))
 
-	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigin, mux))), ReadHeaderTimeout: 10 * time.Second}
+	srv := &http.Server{Addr: ":" + cfg.Port, Handler: withLogging(withRecovery(withCORS(cfg.AllowedOrigins, mux))), ReadHeaderTimeout: 10 * time.Second}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

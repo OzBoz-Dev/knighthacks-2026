@@ -50,17 +50,20 @@ func TestLoggingWritesOneLine(t *testing.T) {
 
 func TestCORS(t *testing.T) {
 	const web = "http://localhost:3000"
-	h := withCORS(web, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	const deployed = "https://frontend-digi-theta.vercel.app"
+	h := withCORS([]string{web, deployed}, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
 
-	t.Run("web origin", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/api/offers", nil)
-		req.Header.Set("Origin", web)
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
-		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != web {
-			t.Fatalf("allow origin = %q", got)
-		}
-	})
+	for _, origin := range []string{web, deployed} {
+		t.Run("listed origin "+origin, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "/api/offers", nil)
+			req.Header.Set("Origin", origin)
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			if got := rec.Header().Get("Access-Control-Allow-Origin"); got != origin {
+				t.Fatalf("allow origin = %q", got)
+			}
+		})
+	}
 
 	t.Run("other origin", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/offers", nil)

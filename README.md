@@ -83,7 +83,7 @@ NEXT_PUBLIC_USE_DEV_FIXTURES=1 npm run dev
 
 The sample data is synthetic and the page labels it as sample data. The flag works only with `npm run dev`. A production build never loads the samples. The flag does not mock Match or My Reservations.
 
-To use another port, run `npm run dev -- -p 3100`. Then set `ALLOWED_ORIGIN` in `api/.env` to the same origin, for example `http://localhost:3100`, so the API accepts the requests.
+To use another port, run `npm run dev -- -p 3100`. Then add the same origin to `ALLOWED_ORIGIN` in `api/.env`, for example `http://localhost:3000,http://localhost:3100`, so the API accepts the requests.
 
 Restart the dev server after you change `.env.local`. A production build (`npm run build`) reads the `NEXT_PUBLIC_` values when it builds, so build again after a change.
 
@@ -101,7 +101,7 @@ Two files hold settings. Never commit either file. Restart the API or the web de
 | Variable | Secret | Where it runs | Default | Purpose |
 |---|---|---|---|---|
 | `PORT` | No | Server | `8000` | Port the API listens on. |
-| `ALLOWED_ORIGIN` | No | Server | `http://localhost:3000` | Web origin that the API allows (CORS). |
+| `ALLOWED_ORIGIN` | No | Server | `http://localhost:3000` | Comma-separated web origins that the API allows (CORS). |
 | `DB_PATH` | No | Server | `data/digigpu.db` | SQLite database file. |
 | `SNAPSHOT_DIR` | No | Server | `data/snapshots` | Folder for saved market snapshots. |
 | `VAST_API_KEY` | Yes | Server only | None. Required unless `USE_VAST_FIXTURE=1`. | Vast.ai API key. |

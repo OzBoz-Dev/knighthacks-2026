@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/OzBoz-Dev/knighthacks-2026/api/httpx"
@@ -44,12 +45,13 @@ func withRecovery(next http.Handler) http.Handler {
 	})
 }
 
-// withCORS allows browser requests from the web origin only.
-// A preflight from that origin gets 204. A request from another origin gets no CORS headers.
-func withCORS(origin string, next http.Handler) http.Handler {
+// withCORS allows browser requests from the listed web origins only.
+// A preflight from a listed origin gets 204. A request from another origin gets no CORS headers.
+func withCORS(origins []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Vary", "Origin")
-		if r.Header.Get("Origin") != origin {
+		origin := r.Header.Get("Origin")
+		if !slices.Contains(origins, origin) {
 			next.ServeHTTP(w, r)
 			return
 		}
