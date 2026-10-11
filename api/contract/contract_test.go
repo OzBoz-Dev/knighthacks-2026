@@ -67,8 +67,12 @@ func TestStructKeysMatchTypeScript(t *testing.T) {
 			t.Errorf("%s keys\n go: %v\n ts: %v", name, got, want)
 		}
 	}
-	if len(ts) != len(goTypes) {
-		t.Errorf("types.ts has %d types, the test checks %d", len(ts), len(goTypes))
+	// Wire types whose Go structs live in package main, httpx, or solana; their own tests cover them.
+	elsewhere := []string{"ApiErrorResponse", "HealthResponse", "CreateReservationRequest", "ReceiptCheck", "VerifyReservationResponse"}
+	for name := range ts {
+		if _, ok := goTypes[name]; !ok && !slices.Contains(elsewhere, name) {
+			t.Errorf("types.ts type %s has no Go struct in this test", name)
+		}
 	}
 }
 
