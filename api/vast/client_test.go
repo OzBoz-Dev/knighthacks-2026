@@ -2,6 +2,7 @@ package vast
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,6 +23,10 @@ func TestFetchSuccess(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer secret-key" || r.Method != http.MethodPost || r.URL.Path != "/api/v0/bundles/" {
 			t.Errorf("bad request: %s %s %q", r.Method, r.URL.Path, r.Header.Get("Authorization"))
+		}
+		body, _ := io.ReadAll(r.Body)
+		if !strings.Contains(string(body), `"limit":2000`) {
+			t.Errorf("body = %s, want a limit of 2000", body)
 		}
 		w.Write([]byte(`{"offers":[{"id":1},{"id":2}]}`))
 	}))

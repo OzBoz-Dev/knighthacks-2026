@@ -15,7 +15,8 @@ const (
 	// DefaultBaseURL is the Vast.ai console API root.
 	DefaultBaseURL = "https://console.vast.ai"
 	requestTimeout = 10 * time.Second
-	query          = `{"rentable":{"eq":true},"type":"on-demand"}`
+	// Vast.ai returns 64 offers without a limit. The server caps the limit below 2000.
+	query = `{"rentable":{"eq":true},"type":"on-demand","limit":2000}`
 )
 
 // Result holds the raw offers and the time the client received them.
