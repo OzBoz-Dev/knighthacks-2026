@@ -25,3 +25,9 @@ describe("offersText", () => {
     expect(offersText(48)).toBe("48 offers");
   });
 });
+
+describe("VRAM wording", () => {
+  it("names the per-GPU rule that the API applies (#36)", () => {
+    expect(exclusionRows({ gpu_model: 0, region: 0, vram: 2, reliability: 0, budget: 0 })).toEqual([{ key: "vram", label: "VRAM per GPU", count: 2 }]);
+  });
+});

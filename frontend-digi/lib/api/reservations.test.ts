@@ -1,7 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "./client";
-import { confirmReservation, createReservation, decodeReservationList, decodeVerifyResult, getReservations, verifyReservation } from "./reservations";
+import {
+  confirmReservation,
+  createReservation,
+  decodeReservationList,
+  decodeVerifyResult,
+  getReservations,
+  verifyReservation,
+} from "./reservations";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fixture = JSON.parse(readFileSync(new URL("../../../fixtures/reservations.json", import.meta.url), "utf8"));

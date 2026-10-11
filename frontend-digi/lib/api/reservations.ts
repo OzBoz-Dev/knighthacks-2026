@@ -1,16 +1,13 @@
 import { apiRequest, type RequestOptions } from "./client";
 import { count, fail, flag, list, number, record, text } from "./decode";
-import type { MatchRequest, Reservation } from "./types";
+import type { MatchRequest, ReceiptCheckName, Reservation, VerifyReservationResponse } from "./types";
 
 type Options = Pick<RequestOptions, "signal" | "baseUrl" | "fetchImpl">;
 
 const STATUSES = ["pending", "confirmed", "failed"] as const;
 
 // The check names and order of api/solana/verify.go.
-export const VERIFY_CHECKS = ["exists", "signer", "reservation_id", "memo_hash", "confirmed"] as const;
-export type VerifyCheckName = (typeof VERIFY_CHECKS)[number];
-export type VerifyCheck = { name: VerifyCheckName; passed: boolean; detail: string };
-export type VerifyResult = { reservation_id: string; signature: string; slot: number | null; checks: VerifyCheck[] };
+export const VERIFY_CHECKS: readonly ReceiptCheckName[] = ["exists", "signer", "reservation_id", "memo_hash", "confirmed"];
 
 const nullableText = (value: unknown, path: string) => (value === null ? null : text(value, path));
 const slot = (value: unknown, path: string) => (value === null ? null : count(value, path));
@@ -54,7 +51,7 @@ export function decodeReservationList(data: unknown, wallet: string): Reservatio
   return rows;
 }
 
-export function decodeVerifyResult(data: unknown, reservationId: string): VerifyResult {
+export function decodeVerifyResult(data: unknown, reservationId: string): VerifyReservationResponse {
   const r = record(data, "verify");
   const rows = list(r.checks, "checks").map((item, i) => {
     const c = record(item, `checks[${i}]`);
@@ -78,7 +75,7 @@ export function getReservations(wallet: string, options: Options = {}): Promise<
 }
 
 // A read: the API runs the devnet checks again and does not change the reservation.
-export function verifyReservation(id: string, options: Options = {}): Promise<VerifyResult> {
+export function verifyReservation(id: string, options: Options = {}): Promise<VerifyReservationResponse> {
   if (!id.trim()) return Promise.reject(new Error("A reservation id is required."));
   return apiRequest(`/api/reservations/${encodeURIComponent(id)}/verify`, { ...options, decode: (data: unknown) => decodeVerifyResult(data, id) });
 }
@@ -95,7 +92,7 @@ export type CreateReservationBody = {
   region: string | null;
 };
 
-export type ConfirmResult = { reservation: Reservation; failed_checks: VerifyCheckName[] };
+export type ConfirmResult = { reservation: Reservation; failed_checks: ReceiptCheckName[] };
 
 // The API sets the GPU and the price from the offer, so only the values the user sent are compared.
 export function decodeCreatedReservation(data: unknown, body: CreateReservationBody): Reservation {
