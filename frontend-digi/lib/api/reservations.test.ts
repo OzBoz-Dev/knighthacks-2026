@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "./client";
-import { decodeReservationList, decodeVerifyResult, getReservations, verifyReservation } from "./reservations";
+import { confirmReservation, createReservation, decodeReservationList, decodeVerifyResult, getReservations, verifyReservation } from "./reservations";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const fixture = JSON.parse(readFileSync(new URL("../../../fixtures/reservations.json", import.meta.url), "utf8"));
@@ -117,6 +117,76 @@ describe("getReservations and verifyReservation", () => {
     const fetchImpl = vi.fn();
     await expect(getReservations(" ", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/wallet/);
     await expect(verifyReservation("", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/id/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("createReservation", () => {
+  const body = () => structuredClone(fixture.create.request);
+  const created = () => structuredClone(fixture.create.response) as any;
+
+  it("posts the exact body and returns the pending reservation", async () => {
+    const fetchImpl = vi.fn(async () => json(created(), 201));
+    const reservation = await createReservation(body(), { baseUrl: BASE, fetchImpl });
+    expect(reservation.payload_hash).toBe(fixture.create.response.payload_hash);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/reservations`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual(fixture.create.request);
+  });
+
+  it("rejects a reservation for another wallet or one that is not pending", async () => {
+    const other = vi.fn(async () => json({ ...created(), wallet: "OtherWallet111111111111111111111111111111111" }, 201));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl: other })).rejects.toMatchObject({ kind: "invalid_response" });
+    const signed = vi.fn(async () => json({ ...created(), status: "failed", signature: "sig" }, 201));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl: signed })).rejects.toMatchObject({ kind: "invalid_response" });
+  });
+
+  it("shows the API error message and sends one request only", async () => {
+    const fetchImpl = vi.fn(async () => json({ error: { code: "bad_request", message: "The offer is not in that snapshot." } }, 400));
+    await expect(createReservation(body(), { baseUrl: BASE, fetchImpl })).rejects.toMatchObject({ kind: "http", status: 400, message: "The offer is not in that snapshot." });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("confirmReservation", () => {
+  const SIG: string = fixture.confirm.request.signature;
+  const confirmed = () => structuredClone(fixture.confirm.response) as any;
+
+  it("posts the signature and returns the confirmed reservation", async () => {
+    const fetchImpl = vi.fn(async () => json(confirmed()));
+    const result = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl });
+    expect(result.reservation.status).toBe("confirmed");
+    expect(result.failed_checks).toEqual([]);
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`${BASE}/api/reservations/${CONFIRMED_ID}/confirm`);
+    expect(JSON.parse(init.body as string)).toEqual({ signature: SIG });
+  });
+
+  it("returns a failed reservation with the names of the failed checks", async () => {
+    const fetchImpl = vi.fn(async () => json({ ...confirmed(), status: "failed", slot: null, failed_checks: ["memo_hash"] }));
+    const result = await confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl });
+    expect(result.reservation.status).toBe("failed");
+    expect(result.failed_checks).toEqual(["memo_hash"]);
+  });
+
+  it("rejects a result for another signature, a missing check list, or a status that contradicts the checks", async () => {
+    const cases = [
+      { ...confirmed(), signature: "OtherSignature" },
+      { ...confirmed(), failed_checks: undefined },
+      { ...confirmed(), failed_checks: ["signer"] },
+      { ...confirmed(), status: "failed", failed_checks: [] },
+      { ...confirmed(), status: "pending", signature: SIG, slot: null },
+    ];
+    for (const data of cases) {
+      const fetchImpl = vi.fn(async () => json(data));
+      await expect(confirmReservation(CONFIRMED_ID, SIG, { baseUrl: BASE, fetchImpl })).rejects.toMatchObject({ kind: "invalid_response" });
+    }
+  });
+
+  it("refuses a blank id or signature before any request", async () => {
+    const fetchImpl = vi.fn();
+    await expect(confirmReservation(CONFIRMED_ID, " ", { baseUrl: BASE, fetchImpl })).rejects.toThrow(/signature/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
