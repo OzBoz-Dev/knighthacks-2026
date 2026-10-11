@@ -17,9 +17,16 @@ const AllRegions = "all"
 
 const goldSchema = "solgpu.gold"
 
+// Gold keys each GPU by its canonical name (#13). The offers keep the raw Vast.ai name, for example
+// "A100 PCIE" for "A100 PCIe", so each query maps the name through the table that silver uses.
+const nameMap = "solgpu.silver.gpu_name_map"
+
+// canonicalName is the canonical name of :gpu_name. A name with no map row keeps its raw value, as in silver.
+const canonicalName = "coalesce((SELECT max(canonical_name) FROM " + nameMap + " WHERE raw_name = :gpu_name), :gpu_name)"
+
 const summaryQuery = `SELECT gpu_name, listing_count, lowest_price, median_price, p90_price, median_reliability, updated_at
 FROM ` + goldSchema + `.gpu_market_summary
-WHERE gpu_name = :gpu_name
+WHERE gpu_name = ` + canonicalName + `
 ORDER BY updated_at DESC
 LIMIT 1`
 
@@ -27,15 +34,20 @@ LIMIT 1`
 // so a chart never mixes regions.
 const trendsQuery = "SELECT `timestamp`, minimum_price, median_price, p10_price, p90_price, listing_count\n" +
 	"FROM " + goldSchema + ".gpu_price_trends\n" +
-	"WHERE gpu_name = :gpu_name AND region = :region\n" +
+	"WHERE gpu_name = " + canonicalName + " AND region = :region\n" +
 	"ORDER BY `timestamp` ASC"
 
 // mediansQuery reads the latest summary row of each GPU in one statement, so a page of offers needs one query.
-const mediansQuery = `SELECT gpu_name, median_price
-FROM ` + goldSchema + `.gpu_market_summary
-QUALIFY ROW_NUMBER() OVER (PARTITION BY gpu_name ORDER BY updated_at DESC) = 1`
+// It gives one row for each raw name in the map, so an offer finds its median by its raw gpu_name.
+const mediansQuery = `SELECT coalesce(m.raw_name, s.gpu_name), s.median_price
+FROM (
+  SELECT gpu_name, median_price
+  FROM ` + goldSchema + `.gpu_market_summary
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY gpu_name ORDER BY updated_at DESC) = 1
+) s
+LEFT JOIN ` + nameMap + ` m ON m.canonical_name = s.gpu_name`
 
-// Medians maps each gpu_name to its latest median price.
+// Medians maps each raw Vast.ai gpu_name to the latest median price of its canonical GPU.
 func Medians(ctx context.Context, q Querier) (map[string]float64, error) {
 	res, err := q.Query(ctx, mediansQuery)
 	if err != nil {

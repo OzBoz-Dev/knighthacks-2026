@@ -294,9 +294,9 @@ The API and frontend checks that establish each result are specified in section 
 - My Reservations list with receipt verification.
 - Databricks bronze/silver/gold pipeline and a live app query to at least one gold output.
 - Honest fixtures for Vast and Databricks failures.
+- Region comparison chart for the selected GPU, from the gold trend table.
 
 ### Should, only after the full flow works at H7
-- Region comparison chart.
 - Performance-per-dollar trend.
 - Shareable receipt URL.
 - Export reservation receipt as JSON.
@@ -624,6 +624,8 @@ The Databricks client uses named SQL parameters. Never interpolate request value
 - `USE_VAST_FIXTURE=1` reads `fixtures/vast_offers.json` without a Vast request. A missing or invalid file makes offers and Match return 503.
 - The API computes market position from an available gold median. Without a median it leaves the offer's existing value unchanged; live-normalized offers have `null`.
 - Both market endpoints require a nonblank `gpu_name`. Trends use `region=all` when region is omitted or blank, not a mixture of regional rows.
+- Live market queries map raw GPU names through `solgpu.silver.gpu_name_map`. Unmapped names retain their input value.
+- The current export loader matches canonical names exactly. It has no raw-name map, so differently spelled raw names can lack fallback insights.
 - Summary returns the latest row for the GPU. A successful query with no row returns `data: null`, not 404.
 - Trends return points in ascending timestamp order. No matching points returns `data: []`, not 404.
 - Successful Databricks query results are cached for five minutes. Query errors are not cached as successful results.
@@ -737,6 +739,7 @@ The P3 signer must use the same prefix. An older frontend that emits `DG1` does 
 - The Go API writes one raw Vast.ai snapshot file every 10 minutes to a shared local directory.
 - P4 owns `/databricks/upload_snapshots.py`, which uploads new files to a Unity Catalog Volume and records what succeeded.
 - Upload failure does not break Explore or Match; the script retries on the next cycle.
+- A scheduled Databricks job runs bronze to silver to gold every 10 minutes, 5 minutes after the collector tick. P4 owns it.
 - Start collection and upload by H1 so the demo has real history.
 
 ### Bronze

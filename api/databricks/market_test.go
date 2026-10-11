@@ -89,3 +89,18 @@ func TestLatestTime(t *testing.T) {
 		t.Fatal("want error for no row")
 	}
 }
+
+// Gold keys by the canonical name, so every query must map the raw Vast.ai name (#13).
+func TestQueriesMapTheRawName(t *testing.T) {
+	q := &rowsQuerier{}
+	_, _ = Summary(context.Background(), q, "A100 PCIE")
+	summary := q.statement
+	_, _ = Trends(context.Background(), q, "A100 PCIE", "")
+	trends := q.statement
+	_, _ = Medians(context.Background(), q)
+	for name, s := range map[string]string{"summary": summary, "trends": trends, "medians": q.statement} {
+		if !strings.Contains(s, nameMap) {
+			t.Errorf("%s statement does not use %s:\n%s", name, nameMap, s)
+		}
+	}
+}
