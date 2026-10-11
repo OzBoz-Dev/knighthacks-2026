@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { LazyWalletButton } from "@/components/solana/lazy-wallet-button";
 import { FadeIn } from "@/components/shared/fade-in";
+import { ApiStatus } from "./api-status";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Explore", icon: IconCompass },
@@ -75,7 +76,8 @@ export function AppShellLayout({ children }: { children: ReactNode }) {
         </AppShell.Section>
         <AppShell.Section pt="md" style={{ borderTop: "1px solid var(--dg-rule)" }}>
           <FadeIn delay={200}>
-            <Text fz={12} fw={600}>Solana devnet</Text>
+            <ApiStatus />
+            <Text fz={12} fw={600} mt="md">Solana devnet</Text>
             <Text fz={12} c="dimmed" mt={4} mb="sm">Test network · No real payments</Text>
             <LazyWalletButton fullWidth />
           </FadeIn>
